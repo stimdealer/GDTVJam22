@@ -6,6 +6,10 @@
 // Engine includes
 #include "UObject/ConstructorHelpers.h"
 #include "Camera/CameraComponent.h"
+#include "Components/SphereComponent.h"
+
+// Local includes
+#include "NPCShip.h"
 
 APlayerShip::APlayerShip()
 {
@@ -24,11 +28,24 @@ APlayerShip::APlayerShip()
 	TopDownCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("Top Down Camera"));
 	TopDownCamera->AttachToComponent(CameraElevation, FAttachmentTransformRules::KeepRelativeTransform);
 	TopDownCamera->AddLocalOffset(FVector(-5000.0, 0, 0));
+
+	TargetField = CreateDefaultSubobject<USphereComponent>(TEXT("Target Field"));
 }
 
 void APlayerShip::Tick(float DeltaTime)
 {
-	MoveToDestination(DeltaTime);
+	Super::Tick(DeltaTime);
+
+	ScanTimer += DeltaTime;
+	if (ScanTimer > ScanFrequency)
+	{
+		ScanTimer = 0.f;
+		ScanForTargets();
+	}
+
+	CameraAttach->SetWorldLocation(FMath::VInterpTo(CameraAttach->GetComponentLocation(), this->GetActorLocation(), DeltaTime, 5.f));
+
+
 }
 
 void APlayerShip::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -49,59 +66,6 @@ void APlayerShip::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 		PlayerInputComponent->BindAxis("CameraZoom", this, &APlayerShip::InputCameraZoom);
 	}
 	else { UE_LOG(LogTemp, Error, TEXT("Input component NOT found!")); }
-}
-
-void APlayerShip::MoveToDestination(float InDelta)
-{
-	if (!IsValid(PhysicsRoot)) return;
-
-	CameraAttach->SetWorldLocation(FMath::VInterpTo(CameraAttach->GetComponentLocation(), this->GetActorLocation(), InDelta, 5.f));
-
-	FVector Heading = FVector(Destination - this->GetActorLocation()).GetSafeNormal();
-
-	float Distance = FVector::Distance(this->GetActorLocation(), Destination);
-	float AngleDistance = FMath::RadiansToDegrees(acosf(FVector::DotProduct(this->GetActorForwardVector(), Heading)));
-
-	//GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Cyan, FString::SanitizeFloat(Distance));
-	//GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Purple, FString::SanitizeFloat(AngleDistance));
-
-	UPrimitiveComponent* Prim = Cast<UPrimitiveComponent>(PhysicsRoot);
-	if (IsValid(Prim))
-	{
-		// Apply rotation
-		if (Distance > 1000.f) Prim->SetWorldRotation(FMath::RInterpTo(Prim->GetComponentRotation(), Heading.Rotation(), InDelta, 1.f));
-
-		float Momentum;
-		FVector Direction;
-		Prim->GetComponentVelocity().ToDirectionAndLength(Direction, Momentum);
-
-		// Apply forward thrust
-		FVector Force = FVector(0.0);
-		if (Distance > 400.0 && Momentum < MaxSpeed * 1.25 && AngleDistance < 10.0)
-		{
-			if (Distance > 1000.0) Thrust = 50000.f;
-			else if (Distance > 600.0) Thrust = 20000.f;
-			else Thrust = 10000.f;
-
-			Force = Prim->GetForwardVector() * Thrust * InDelta;
-		}
-		else
-		{
-			//GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::White, TEXT("Stopping Ship"));
-			if (Prim->GetComponentVelocity().X > 5.0 || Prim->GetComponentVelocity().Y > 5.0 || Prim->GetComponentVelocity().Z > 5.0)
-			{
-				Force = Prim->GetComponentVelocity() * -5;
-			}
-		}
-
-		Force = FVector(
-			FMath::Clamp(Force.X, -MaxSpeed, MaxSpeed),
-			FMath::Clamp(Force.Y, -MaxSpeed, MaxSpeed),
-			FMath::Clamp(Force.Z, -MaxSpeed, MaxSpeed)
-		);
-
-		Prim->AddForce(Force, NAME_None, true);
-	}
 }
 
 void APlayerShip::StartLeftClick()
@@ -132,4 +96,22 @@ void APlayerShip::InputNavMouseY(float Value)
 
 void APlayerShip::InputCameraZoom(float Value)
 {
+	TopDownCamera->AddLocalOffset(FVector(Value * 500.f, 0.f, 0.f));
+}
+
+TArray<ANPCShip*> APlayerShip::ScanForTargets()
+{
+	TArray<AActor*> OverlappingActors;
+	TargetField->GetOverlappingActors(OverlappingActors, TSubclassOf<AJamShipBase>());
+
+	TArray<ANPCShip*> NPCShips;
+	for (AActor* ShipActor : OverlappingActors)
+	{
+		ANPCShip* NPCShip = Cast<ANPCShip>(ShipActor);
+		if (IsValid(NPCShip)) NPCShips.Add(NPCShip);
+	}
+
+	GEngine->AddOnScreenDebugMessage(-1, 0.4f, FColor::Cyan, FString::SanitizeFloat(NPCShips.Num()));
+
+	return NPCShips;
 }

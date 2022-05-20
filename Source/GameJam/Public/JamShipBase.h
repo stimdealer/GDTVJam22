@@ -17,21 +17,33 @@ public:
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FVector Destination;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UStaticMeshComponent* PhysicsRoot;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	UStaticMesh* BaseMesh;
 
-	virtual void BeginPlay() override;
-
 	UStaticMeshComponent* ShipBaseMesh = nullptr;
 
 	UStaticMeshComponent* ShipUpgradeMesh = nullptr; // Placeholder.
+
+	AJamShipBase* TargetShip = nullptr;
+
+	virtual void BeginPlay() override;
+
+	void FireWeapons();
 
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+private:
+	float MaxSpeed = 300.f;
+	float Thrust = 50000.f;
+	float TurnSpeed = 50.f;
+	float WeaponsRange = 3000.f;
+
+	void MoveToDestination(float InDelta);
 };

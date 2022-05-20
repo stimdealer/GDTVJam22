@@ -8,6 +8,7 @@
 
 class USceneComponent;
 class UCameraComponent;
+class USphereComponent;
 
 UCLASS()
 class GAMEJAM_API APlayerShip : public AJamShipBase
@@ -20,8 +21,8 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FVector Destination;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	USphereComponent* TargetField;
 
 private:
 	USceneComponent* CameraAttach;
@@ -30,11 +31,8 @@ private:
 	UCameraComponent* TopDownCamera;
 
 	bool bPrimaryPressed;
-	float MaxSpeed = 300.f;
-	float Thrust = 50000.f;
-	float TurnSpeed = 50.f;
-
-	void MoveToDestination(float InDelta);
+	float ScanFrequency = 0.5f;
+	float ScanTimer = 0.f;
 
 	// Mouse controls
 	void StartLeftClick();
@@ -45,4 +43,6 @@ private:
 	void InputNavMouseX(float Value);
 	void InputNavMouseY(float Value);
 	void InputCameraZoom(float Value);
+
+	TArray<class ANPCShip*> ScanForTargets();
 };

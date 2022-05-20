@@ -3,3 +3,28 @@
 
 #include "NPCShip.h"
 
+void ANPCShip::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	CheckDistanceToPlayer();
+}
+
+void ANPCShip::CheckDistanceToPlayer()
+{
+	if (!IsValid(PlayerShipRef)) return;
+
+	float Distance = FVector::Distance(this->GetActorLocation(), PlayerShipRef->GetActorLocation());
+
+	if (Distance < AggroRadius)
+	{
+		EngagePlayer();
+	}
+}
+
+void ANPCShip::EngagePlayer()
+{
+	TargetShip = PlayerShipRef;
+	Destination = PlayerShipRef->GetActorLocation();
+	FireWeapons();
+}
