@@ -27,6 +27,10 @@ I.e., do we need space station
 
 Skybox! Might be done in material, or nasa picture or simple start things... we will see how much time we need...
 
+# VFX
+
+What kind of (non trivial) effect do we need? eg. explosions, lightings, lightshafts?
+
 ## Audio
 
 # Music
