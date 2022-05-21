@@ -21,6 +21,7 @@ void ANPCShip::CheckDistanceToPlayer()
 	{
 		EngagePlayer();
 	}
+	else ToggleArrows(false);
 }
 
 void ANPCShip::EngagePlayer()

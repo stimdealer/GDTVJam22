@@ -19,6 +19,9 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 
+	UFUNCTION(BlueprintImplementableEvent, Category = "Target Arrows")
+	void ToggleArrows(bool IsVisible);
+
 private:
 	void CheckDistanceToPlayer();
 

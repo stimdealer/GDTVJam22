@@ -22,11 +22,20 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	UFUNCTION(BlueprintImplementableEvent, Category = "UI Functions")
+	void SendArmorFuelToUI(float InArmorPercent, float InFuelPercent);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "UI Functions")
+	void SendMessageToUI(const FText& InMessage);
+
+	void UpgradeShip();
+
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	USphereComponent* TargetField;
 
 private:
+	TArray<ANPCShip*> AllTargets;
 	ANPCShip* ClosestTarget = nullptr;
 
 	USceneComponent* CameraAttach;
@@ -38,15 +47,14 @@ private:
 	float ScanFrequency = 0.5f;
 	float ScanTimer = 0.f;
 
-	// Mouse controls
+	// Controls
 	void StartLeftClick();
 	void StopLeftClick();
-	void StartRightClick();
-	void StopRightClick();
+	void InputCameraZoomIn();
+	void InputCameraZoomOut();
+	void InputStartSpeedBoost();
+	void InputStopSpeedBoost();
 
-	void InputNavMouseX(float Value);
-	void InputNavMouseY(float Value);
-	void InputCameraZoom(float Value);
-
-	TArray<ANPCShip*> ScanForTargets();
+	void ScanForTargets();
+	void SelectClosestTarget();
 };

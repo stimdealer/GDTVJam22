@@ -31,6 +31,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FVector Destination;
 
+	bool bIsBoosting = false;
 	bool bIsDestroyed = false;
 
 	void SetupTurret(FName InSocket, ETurretType InType);
@@ -45,17 +46,26 @@ public:
 
 	void ApplyDamage(float InDamage);
 
+	float GetHealthPercent();
+	float GetFuelPercent();
+
 private:
+	bool bIsTurretsAimedAtTarget = false;
+	bool bIsTurretsInRange = false;
+
 	float WeaponsTimer = 0.f;
-	float TurretsFirepower = 20.f;
+	float TurretsFirepower = 5.f;
 
 	float MaxHealth = 100.f;
 	float CurrentHealth = 100.f;
 
-	float MaxSpeed = 300.f;
+	float MaxFuel = 100.f;
+	float CurrentFuel = 100.f;
+
+	float MaxSpeed = 500.f;
 	float Thrust = 50000.f;
-	float TurnSpeed = 50.f;
-	float WeaponsRange = 3000.f;
+	float TurnSpeed = 75.f;
+	float WeaponsRange = 6000.f;
 
 	void MoveToDestination(float InDelta);
 

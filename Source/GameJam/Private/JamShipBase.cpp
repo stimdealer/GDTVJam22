@@ -33,20 +33,22 @@ void AJamShipBase::Tick(float DeltaTime)
 	MoveToDestination(DeltaTime);
 	TurretsTracking(DeltaTime);
 
+	if (bIsBoosting) CurrentFuel -= DeltaTime;
+
 	if (IsValid(TargetShip))
 	{
 		WeaponsTimer += DeltaTime;
 		if (WeaponsTimer > 0.5f)
 		{
 			WeaponsTimer = 0.f;
-			TargetShip->ApplyDamage(TurretsFirepower);
+			FireWeapons();
 		}
 	}
 }
 
 void AJamShipBase::FireWeapons()
 {
-	//GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Cyan, TEXT("Firing weapons!"));
+	if (bIsTurretsInRange && bIsTurretsAimedAtTarget) TargetShip->ApplyDamage(TurretsFirepower);
 }
 
 void AJamShipBase::SetupTurret(FName InSocket, ETurretType InType)
@@ -73,7 +75,7 @@ void AJamShipBase::MoveToDestination(float InDelta)
 	if (IsValid(Prim))
 	{
 		// Apply rotation
-		if (Distance > 1000.f) Prim->SetWorldRotation(FMath::RInterpTo(Prim->GetComponentRotation(), Heading.Rotation(), InDelta, 1.f));
+		if (Distance > 1000.f) Prim->SetWorldRotation(FMath::RInterpTo(Prim->GetComponentRotation(), Heading.Rotation(), InDelta, float(TurnSpeed / Prim->GetMass())));
 
 		float Momentum;
 		FVector Direction;
@@ -81,11 +83,17 @@ void AJamShipBase::MoveToDestination(float InDelta)
 
 		// Apply forward thrust
 		FVector Force = FVector(0.0);
-		if (Distance > 400.0 && Momentum < MaxSpeed * 1.25 && AngleDistance < 10.0)
+		float NewMaxSpeed;
+		if (bIsBoosting && CurrentFuel > 0.f) NewMaxSpeed = MaxSpeed * 2.f;
+		else NewMaxSpeed = MaxSpeed;
+
+		GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::White, FString::SanitizeFloat(NewMaxSpeed));
+
+		if (Distance > 500.0 && Momentum < NewMaxSpeed * 1.25 && AngleDistance < 45.0)
 		{
-			if (Distance > 1000.0) Thrust = 50000.f;
-			else if (Distance > 600.0) Thrust = 20000.f;
-			else Thrust = 10000.f;
+			if (bIsBoosting && Distance > 1000.0) Thrust = 100000.f;
+			else if (Distance > 1000.0) Thrust = 50000.f;
+			else Thrust = 25000.f;
 
 			Force = Prim->GetForwardVector() * Thrust * InDelta;
 		}
@@ -93,14 +101,14 @@ void AJamShipBase::MoveToDestination(float InDelta)
 		{
 			if (Prim->GetComponentVelocity().X > 5.0 || Prim->GetComponentVelocity().Y > 5.0 || Prim->GetComponentVelocity().Z > 5.0)
 			{
-				Force = Prim->GetComponentVelocity() * -5;
+				Force = Prim->GetComponentVelocity() * -2;
 			}
 		}
 
 		Force = FVector(
-			FMath::Clamp(Force.X, -MaxSpeed, MaxSpeed),
-			FMath::Clamp(Force.Y, -MaxSpeed, MaxSpeed),
-			FMath::Clamp(Force.Z, -MaxSpeed, MaxSpeed)
+			FMath::Clamp(Force.X, -NewMaxSpeed, NewMaxSpeed),
+			FMath::Clamp(Force.Y, -NewMaxSpeed, NewMaxSpeed),
+			FMath::Clamp(Force.Z, -NewMaxSpeed, NewMaxSpeed)
 		);
 
 		Prim->AddForce(Force, NAME_None, true);
@@ -123,16 +131,16 @@ void AJamShipBase::TurretsTracking(float InDelta)
 				FRotator RotFromX = UKismetMathLibrary::MakeRotFromX(Inverse);
 				NewYaw = RotFromX.Yaw;
 
-				//FVector TargetDirection = FVector(TargetShip->GetActorLocation() - this->GetActorLocation());
+				float TurretAngleToTarget = FMath::RadiansToDegrees(acosf(FVector::DotProduct(Turret->GetForwardVector(), Translate.GetSafeNormal())));
+				bIsTurretsAimedAtTarget = TurretAngleToTarget < 30.f;
 
 				float TargetDistance = FVector::Distance(TargetShip->GetActorLocation(), this->GetActorLocation());
+				bIsTurretsInRange = TargetDistance < WeaponsRange;
+				GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Orange, FString::SanitizeFloat(TargetDistance));
 
-				DrawDebugLine(GetWorld(), Turret->GetSocketLocation(TEXT("Fire")), TargetShip->GetActorLocation(), FColor::Green, false, 0.5f, 0.f, 10.f);
-
-				if (TargetDistance < WeaponsRange)
-				{
-					//FireWeapons();					
-				}
+				// Debug lines for testing
+				if (bIsTurretsAimedAtTarget && bIsTurretsInRange) DrawDebugLine(GetWorld(), Turret->GetSocketLocation(TEXT("Fire")), TargetShip->GetActorLocation(), FColor::Green, false, 0.1f, 0.f, 10.f);
+				else DrawDebugLine(GetWorld(), Turret->GetSocketLocation(TEXT("Fire")), TargetShip->GetActorLocation(), FColor::Red, false, 0.1f, 0.f, 10.f);
 			}
 
 			FRotator NewRotation = FMath::RInterpConstantTo(Turret->GetRelativeRotation(), FRotator(0.0, NewYaw, 0.0), InDelta, 100.f);
@@ -148,4 +156,14 @@ void AJamShipBase::ApplyDamage(float InDamage)
 	{
 		bIsDestroyed = true;
 	}
+}
+
+float AJamShipBase::GetHealthPercent()
+{
+	return CurrentHealth / MaxHealth;
+}
+
+float AJamShipBase::GetFuelPercent()
+{
+	return CurrentFuel / MaxFuel;
 }

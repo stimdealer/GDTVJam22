@@ -38,17 +38,27 @@ void APlayerShip::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	ScanTimer += DeltaTime;
-	if (ScanTimer > ScanFrequency)
+	if (bIsDestroyed) SendMessageToUI(FText::FromString(TEXT("Your ship was destroyed permanently.")));
+	else
 	{
-		ScanTimer = 0.f;
-		ScanForTargets();
+		ScanTimer += DeltaTime;
+		if (ScanTimer > ScanFrequency)
+		{
+			ScanTimer = 0.f;
+			ScanForTargets();
 
-		AJamShipBase* Ship = Cast< AJamShipBase>(ClosestTarget);
-		if (IsValid(Ship)) TargetShip = Ship;
+			AJamShipBase* Ship = Cast<AJamShipBase>(ClosestTarget);
+			if (IsValid(Ship))
+			{
+				TargetShip = Ship;
+				ClosestTarget->ToggleArrows(true);
+			}
+
+			SendArmorFuelToUI(GetHealthPercent(), GetFuelPercent());
+		}
+
+		CameraAttach->SetWorldLocation(FMath::VInterpTo(CameraAttach->GetComponentLocation(), this->GetActorLocation(), DeltaTime, 5.f));
 	}
-
-	CameraAttach->SetWorldLocation(FMath::VInterpTo(CameraAttach->GetComponentLocation(), this->GetActorLocation(), DeltaTime, 5.f));
 }
 
 void APlayerShip::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -60,15 +70,21 @@ void APlayerShip::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 		// Action bindings
 		PlayerInputComponent->BindAction("PrimaryAction", IE_Pressed, this, &APlayerShip::StartLeftClick);
 		PlayerInputComponent->BindAction("PrimaryAction", IE_Released, this, &APlayerShip::StopLeftClick);
-		PlayerInputComponent->BindAction("SecondaryAction", IE_Pressed, this, &APlayerShip::StartRightClick);
-		PlayerInputComponent->BindAction("SecondaryAction", IE_Released, this, &APlayerShip::StopRightClick);
+		PlayerInputComponent->BindAction("SpeedBoost", IE_Pressed, this, &APlayerShip::InputStartSpeedBoost);
+		PlayerInputComponent->BindAction("SpeedBoost", IE_Released, this, &APlayerShip::InputStopSpeedBoost);
+		PlayerInputComponent->BindAction("TabTarget", IE_Pressed, this, &APlayerShip::SelectClosestTarget);
 
-		// Axis bindings
-		PlayerInputComponent->BindAxis("NavMouseX", this, &APlayerShip::InputNavMouseX);
-		PlayerInputComponent->BindAxis("NavMouseY", this, &APlayerShip::InputNavMouseY);
-		PlayerInputComponent->BindAxis("CameraZoom", this, &APlayerShip::InputCameraZoom);
+		PlayerInputComponent->BindAction("CameraZoomIn", IE_Pressed, this, &APlayerShip::InputCameraZoomIn);
+		PlayerInputComponent->BindAction("CameraZoomOut", IE_Pressed, this, &APlayerShip::InputCameraZoomOut);
 	}
 	else { UE_LOG(LogTemp, Error, TEXT("Input component NOT found!")); }
+}
+
+void APlayerShip::UpgradeShip()
+{
+	// Set static mesh
+	// Update physics mass
+	// Update turret amounts -> turret damage
 }
 
 void APlayerShip::StartLeftClick()
@@ -81,50 +97,55 @@ void APlayerShip::StopLeftClick()
 	bPrimaryPressed = false;
 }
 
-void APlayerShip::StartRightClick()
+void APlayerShip::InputCameraZoomIn()
 {
+	if (TopDownCamera->GetRelativeLocation().X < -2000) TopDownCamera->AddLocalOffset(FVector(500.f, 0.f, 0.f));
 }
 
-void APlayerShip::StopRightClick()
+void APlayerShip::InputCameraZoomOut()
 {
+	if (TopDownCamera->GetRelativeLocation().X > -10000) TopDownCamera->AddLocalOffset(FVector(-500.f, 0.f, 0.f));
 }
 
-void APlayerShip::InputNavMouseX(float Value)
+void APlayerShip::InputStartSpeedBoost()
 {
+	bIsBoosting = true;
 }
 
-void APlayerShip::InputNavMouseY(float Value)
+void APlayerShip::InputStopSpeedBoost()
 {
+	bIsBoosting = false;
 }
 
-void APlayerShip::InputCameraZoom(float Value)
+void APlayerShip::ScanForTargets()
 {
-	TopDownCamera->AddLocalOffset(FVector(Value * 500.f, 0.f, 0.f));
-}
+	AllTargets.Empty();
 
-TArray<ANPCShip*> APlayerShip::ScanForTargets()
-{
 	TArray<AActor*> OverlappingActors;
 	TargetField->GetOverlappingActors(OverlappingActors, TSubclassOf<AActor>());
-	float ShortestDistance = 50000.f;
-	TArray<ANPCShip*> NPCShips;
 	for (AActor* ShipActor : OverlappingActors)
 	{
 		ANPCShip* NPCShip = Cast<ANPCShip>(ShipActor);
+		if (IsValid(NPCShip)) AllTargets.Add(NPCShip);
+	}
+	if (!IsValid(ClosestTarget)) SelectClosestTarget();
+}
+
+void APlayerShip::SelectClosestTarget()
+{
+	float ShortestDistance = 50000.f;
+	for (ANPCShip* NPCShip : AllTargets)
+	{
 		if (IsValid(NPCShip))
 		{
-			NPCShips.Add(NPCShip);
-
+			NPCShip->ToggleArrows(false);
 			float Distance = FVector::Distance(this->GetActorLocation(), NPCShip->GetActorLocation());
 			if (Distance < ShortestDistance)
 			{
 				ShortestDistance = Distance;
 				ClosestTarget = NPCShip;
-
-				GEngine->AddOnScreenDebugMessage(-1, 0.4f, FColor::Cyan, *ClosestTarget->GetName());
 			}
 		}
 	}
-
-	return NPCShips;
+	if (IsValid(ClosestTarget)) ClosestTarget->ToggleArrows(true);
 }
