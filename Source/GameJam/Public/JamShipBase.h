@@ -44,7 +44,8 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	void ApplyDamage(float InDamage);
+	UFUNCTION(BlueprintCallable)
+	void ShipApplyDamage(float InDamage);
 
 	float GetHealthPercent();
 	float GetFuelPercent();

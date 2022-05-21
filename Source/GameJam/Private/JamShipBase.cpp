@@ -48,7 +48,7 @@ void AJamShipBase::Tick(float DeltaTime)
 
 void AJamShipBase::FireWeapons()
 {
-	if (bIsTurretsInRange && bIsTurretsAimedAtTarget) TargetShip->ApplyDamage(TurretsFirepower);
+	if (bIsTurretsInRange && bIsTurretsAimedAtTarget) TargetShip->ShipApplyDamage(TurretsFirepower);
 }
 
 void AJamShipBase::SetupTurret(FName InSocket, ETurretType InType)
@@ -149,7 +149,7 @@ void AJamShipBase::TurretsTracking(float InDelta)
 	}
 }
 
-void AJamShipBase::ApplyDamage(float InDamage)
+void AJamShipBase::ShipApplyDamage(float InDamage)
 {
 	CurrentHealth -= InDamage;
 	if (CurrentHealth <= 0)
