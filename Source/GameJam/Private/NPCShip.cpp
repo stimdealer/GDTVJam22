@@ -7,7 +7,8 @@ void ANPCShip::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	CheckDistanceToPlayer();
+	if (bIsDestroyed) this->Destroy();
+	else CheckDistanceToPlayer();
 }
 
 void ANPCShip::CheckDistanceToPlayer()

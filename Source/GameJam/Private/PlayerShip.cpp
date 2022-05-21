@@ -30,6 +30,8 @@ APlayerShip::APlayerShip()
 	TopDownCamera->AddLocalOffset(FVector(-5000.0, 0, 0));
 
 	TargetField = CreateDefaultSubobject<USphereComponent>(TEXT("Target Field"));
+	TargetField->AttachToComponent(PhysicsRoot, FAttachmentTransformRules::KeepRelativeTransform);
+	TargetField->SetSphereRadius(10000.f);
 }
 
 void APlayerShip::Tick(float DeltaTime)
@@ -41,11 +43,12 @@ void APlayerShip::Tick(float DeltaTime)
 	{
 		ScanTimer = 0.f;
 		ScanForTargets();
+
+		AJamShipBase* Ship = Cast< AJamShipBase>(ClosestTarget);
+		if (IsValid(Ship)) TargetShip = Ship;
 	}
 
 	CameraAttach->SetWorldLocation(FMath::VInterpTo(CameraAttach->GetComponentLocation(), this->GetActorLocation(), DeltaTime, 5.f));
-
-
 }
 
 void APlayerShip::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -102,16 +105,26 @@ void APlayerShip::InputCameraZoom(float Value)
 TArray<ANPCShip*> APlayerShip::ScanForTargets()
 {
 	TArray<AActor*> OverlappingActors;
-	TargetField->GetOverlappingActors(OverlappingActors, TSubclassOf<AJamShipBase>());
-
+	TargetField->GetOverlappingActors(OverlappingActors, TSubclassOf<AActor>());
+	float ShortestDistance = 50000.f;
 	TArray<ANPCShip*> NPCShips;
 	for (AActor* ShipActor : OverlappingActors)
 	{
 		ANPCShip* NPCShip = Cast<ANPCShip>(ShipActor);
-		if (IsValid(NPCShip)) NPCShips.Add(NPCShip);
-	}
+		if (IsValid(NPCShip))
+		{
+			NPCShips.Add(NPCShip);
 
-	GEngine->AddOnScreenDebugMessage(-1, 0.4f, FColor::Cyan, FString::SanitizeFloat(NPCShips.Num()));
+			float Distance = FVector::Distance(this->GetActorLocation(), NPCShip->GetActorLocation());
+			if (Distance < ShortestDistance)
+			{
+				ShortestDistance = Distance;
+				ClosestTarget = NPCShip;
+
+				GEngine->AddOnScreenDebugMessage(-1, 0.4f, FColor::Cyan, *ClosestTarget->GetName());
+			}
+		}
+	}
 
 	return NPCShips;
 }

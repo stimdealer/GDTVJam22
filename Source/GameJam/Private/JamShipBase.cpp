@@ -3,6 +3,9 @@
 
 #include "JamShipBase.h"
 
+#include "Kismet/KismetMathLibrary.h"
+#include "Engine/Public/DrawDebugHelpers.h"
+
 // Sets default values
 AJamShipBase::AJamShipBase()
 {
@@ -28,11 +31,33 @@ void AJamShipBase::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	MoveToDestination(DeltaTime);
+	TurretsTracking(DeltaTime);
+
+	if (IsValid(TargetShip))
+	{
+		WeaponsTimer += DeltaTime;
+		if (WeaponsTimer > 0.5f)
+		{
+			WeaponsTimer = 0.f;
+			TargetShip->ApplyDamage(TurretsFirepower);
+		}
+	}
 }
 
 void AJamShipBase::FireWeapons()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Cyan, TEXT("Firing weapons!"));
+	//GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Cyan, TEXT("Firing weapons!"));
+}
+
+void AJamShipBase::SetupTurret(FName InSocket, ETurretType InType)
+{
+	if (PhysicsRoot->GetStaticMesh()->FindSocket(InSocket))
+	{
+		UStaticMeshComponent* NewTurret = NewObject<UStaticMeshComponent>(this);
+		NewTurret->RegisterComponent();
+		NewTurret->AttachToComponent(PhysicsRoot, FAttachmentTransformRules::KeepRelativeTransform, InSocket);
+		Turrets.Add(NewTurret);
+	}
 }
 
 void AJamShipBase::MoveToDestination(float InDelta)
@@ -79,5 +104,48 @@ void AJamShipBase::MoveToDestination(float InDelta)
 		);
 
 		Prim->AddForce(Force, NAME_None, true);
+	}
+}
+
+void AJamShipBase::TurretsTracking(float InDelta)
+{
+	double NewYaw = 0.0;
+	for (UStaticMeshComponent* Turret : Turrets)
+	{
+		if (Turret->GetStaticMesh()->FindSocket(TEXT("Fire")))
+		{
+			if (IsValid(TargetShip))
+			{
+				FVector TargetLocation = TargetShip->GetActorLocation();
+				FTransform TurretTransform = this->GetActorTransform();
+				FVector Translate = TargetLocation - Turret->GetComponentLocation();
+				FVector Inverse = UKismetMathLibrary::InverseTransformDirection(TurretTransform, Translate);
+				FRotator RotFromX = UKismetMathLibrary::MakeRotFromX(Inverse);
+				NewYaw = RotFromX.Yaw;
+
+				//FVector TargetDirection = FVector(TargetShip->GetActorLocation() - this->GetActorLocation());
+
+				float TargetDistance = FVector::Distance(TargetShip->GetActorLocation(), this->GetActorLocation());
+
+				DrawDebugLine(GetWorld(), Turret->GetSocketLocation(TEXT("Fire")), TargetShip->GetActorLocation(), FColor::Green, false, 0.5f, 0.f, 10.f);
+
+				if (TargetDistance < WeaponsRange)
+				{
+					//FireWeapons();					
+				}
+			}
+
+			FRotator NewRotation = FMath::RInterpConstantTo(Turret->GetRelativeRotation(), FRotator(0.0, NewYaw, 0.0), InDelta, 100.f);
+			Turret->SetRelativeRotation(NewRotation);
+		}
+	}
+}
+
+void AJamShipBase::ApplyDamage(float InDamage)
+{
+	CurrentHealth -= InDamage;
+	if (CurrentHealth <= 0)
+	{
+		bIsDestroyed = true;
 	}
 }

@@ -10,6 +10,8 @@ class USceneComponent;
 class UCameraComponent;
 class USphereComponent;
 
+class ANPCShip;
+
 UCLASS()
 class GAMEJAM_API APlayerShip : public AJamShipBase
 {
@@ -25,6 +27,8 @@ protected:
 	USphereComponent* TargetField;
 
 private:
+	ANPCShip* ClosestTarget = nullptr;
+
 	USceneComponent* CameraAttach;
 	USceneComponent* CameraAzimuth;
 	USceneComponent* CameraElevation;
@@ -44,5 +48,5 @@ private:
 	void InputNavMouseY(float Value);
 	void InputCameraZoom(float Value);
 
-	TArray<class ANPCShip*> ScanForTargets();
+	TArray<ANPCShip*> ScanForTargets();
 };
