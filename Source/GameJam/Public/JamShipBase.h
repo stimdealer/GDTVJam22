@@ -23,28 +23,21 @@ protected:
 	TArray<UStaticMeshComponent*> Turrets;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FVector Destination;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	UStaticMeshComponent* PhysicsRoot;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
-	UStaticMesh* BaseMesh;
-
-	UStaticMeshComponent* ShipBaseMesh = nullptr;
-
-	UStaticMeshComponent* ShipUpgradeMesh = nullptr; // Placeholder.
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	AJamShipBase* TargetShip = nullptr;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FVector Destination;
+
 	bool bIsDestroyed = false;
+
+	void SetupTurret(FName InSocket, ETurretType InType);
 
 	virtual void BeginPlay() override;
 
 	void FireWeapons();
-
-	void SetupTurret(FName InSocket, ETurretType InType);
 
 public:	
 	// Called every frame
