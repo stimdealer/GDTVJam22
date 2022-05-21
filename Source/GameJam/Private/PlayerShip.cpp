@@ -44,17 +44,20 @@ void APlayerShip::Tick(float DeltaTime)
 		ScanTimer += DeltaTime;
 		if (ScanTimer > ScanFrequency)
 		{
+			SendArmorFuelToUI(GetHealthPercent(), GetFuelPercent());
+
 			ScanTimer = 0.f;
 			ScanForTargets();
 
-			AJamShipBase* Ship = Cast<AJamShipBase>(ClosestTarget);
-			if (IsValid(Ship))
+			if (IsValid(ClosestTarget))
 			{
-				TargetShip = Ship;
-				ClosestTarget->ToggleArrows(true);
-			}
-
-			SendArmorFuelToUI(GetHealthPercent(), GetFuelPercent());
+				AJamShipBase* Ship = Cast<AJamShipBase>(ClosestTarget);
+				if (IsValid(Ship))
+				{
+					TargetShip = Ship;
+					ClosestTarget->ToggleArrows(true);
+				}
+			}				
 		}
 
 		CameraAttach->SetWorldLocation(FMath::VInterpTo(CameraAttach->GetComponentLocation(), this->GetActorLocation(), DeltaTime, 5.f));
