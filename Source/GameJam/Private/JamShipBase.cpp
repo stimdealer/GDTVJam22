@@ -18,13 +18,6 @@ AJamShipBase::AJamShipBase()
 	PhysicsRoot->SetSimulatePhysics(true);
 }
 
-// Called when the game starts or when spawned
-void AJamShipBase::BeginPlay()
-{
-	Super::BeginPlay();
-	
-}
-
 // Called every frame
 void AJamShipBase::Tick(float DeltaTime)
 {
@@ -34,6 +27,21 @@ void AJamShipBase::Tick(float DeltaTime)
 	TurretsTracking(DeltaTime);
 
 	if (bIsBoosting) CurrentFuel -= DeltaTime;
+
+	if (bShieldDown) ShieldRegenDelay += DeltaTime;
+	else ShieldRegenTimer += DeltaTime;
+
+	if (ShieldRegenDelay > 10.f)
+	{
+		ShieldRegenDelay = 0.f;
+		bShieldDown = false;
+	}
+	if (ShieldRegenTimer > 2.f)
+	{
+		ShieldRegenTimer = 0.f;
+		CurrentShield += MaxShield * 0.1f;
+		CurrentShield = FMath::Clamp(CurrentShield, 0, MaxShield);
+	}
 
 	if (IsValid(TargetShip))
 	{
@@ -75,11 +83,14 @@ void AJamShipBase::MoveToDestination(float InDelta)
 	if (IsValid(Prim))
 	{
 		// Apply rotation
-		if (Distance > 1000.f) Prim->SetWorldRotation(FMath::RInterpTo(Prim->GetComponentRotation(), Heading.Rotation(), InDelta, float(TurnSpeed / Prim->GetMass())));
+		Prim->SetWorldRotation(FMath::RInterpTo(Prim->GetComponentRotation(), Heading.Rotation(), InDelta, float(TurnSpeed / Prim->GetMass())));
 
 		float Momentum;
 		FVector Direction;
 		Prim->GetComponentVelocity().ToDirectionAndLength(Direction, Momentum);
+
+		//float AngleToDestination = FMath::RadiansToDegrees(acosf(FVector::DotProduct(Direction, Heading)));
+		//GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::White, *FString(TEXT("Velocity to destination angle (drift) difference:") + FString::SanitizeFloat(AngleToDestination)));
 
 		// Apply forward thrust
 		FVector Force = FVector(0.0);
@@ -87,12 +98,10 @@ void AJamShipBase::MoveToDestination(float InDelta)
 		if (bIsBoosting && CurrentFuel > 0.f) NewMaxSpeed = MaxSpeed * 2.f;
 		else NewMaxSpeed = MaxSpeed;
 
-		GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::White, FString::SanitizeFloat(NewMaxSpeed));
-
-		if (Distance > 500.0 && Momentum < NewMaxSpeed * 1.25 && AngleDistance < 45.0)
+		if (Distance > 200.0 && Momentum < NewMaxSpeed)
 		{
-			if (bIsBoosting && Distance > 1000.0) Thrust = 100000.f;
-			else if (Distance > 1000.0) Thrust = 50000.f;
+			if (bIsBoosting) Thrust = 100000.f;
+			else if (Distance > 600.0) Thrust = 50000.f;
 			else Thrust = 25000.f;
 
 			Force = Prim->GetForwardVector() * Thrust * InDelta;
@@ -136,7 +145,6 @@ void AJamShipBase::TurretsTracking(float InDelta)
 
 				float TargetDistance = FVector::Distance(TargetShip->GetActorLocation(), this->GetActorLocation());
 				bIsTurretsInRange = TargetDistance < WeaponsRange;
-				GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Orange, FString::SanitizeFloat(TargetDistance));
 
 				// Debug lines for testing
 				if (bIsTurretsAimedAtTarget && bIsTurretsInRange) DrawDebugLine(GetWorld(), Turret->GetSocketLocation(TEXT("Fire")), TargetShip->GetActorLocation(), FColor::Green, false, 0.1f, 0.f, 10.f);
@@ -151,19 +159,21 @@ void AJamShipBase::TurretsTracking(float InDelta)
 
 void AJamShipBase::ShipApplyDamage(float InDamage)
 {
-	CurrentHealth -= InDamage;
-	if (CurrentHealth <= 0)
+	float ArmorDamage = InDamage;
+	if (bShieldEnabled && !bShieldDown)
 	{
-		bIsDestroyed = true;
+		float CurrentShieldOld = CurrentShield;
+		CurrentShield -= InDamage;
+		if (CurrentShield <= 0)
+		{
+			ArmorDamage = FMath::Abs(CurrentShieldOld - InDamage);
+			bShieldDown = true;
+		}
+		else ArmorDamage = 0;
 	}
-}
 
-float AJamShipBase::GetHealthPercent()
-{
-	return CurrentHealth / MaxHealth;
-}
+	if (ArmorDamage > 0) ShieldRegenTimer = 0.f;
 
-float AJamShipBase::GetFuelPercent()
-{
-	return CurrentFuel / MaxFuel;
+	CurrentArmor -= ArmorDamage;
+	if (CurrentArmor <= 0) bIsDestroyed = true;
 }

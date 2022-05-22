@@ -17,16 +17,19 @@ void ANPCShip::CheckDistanceToPlayer()
 
 	float Distance = FVector::Distance(this->GetActorLocation(), PlayerShipRef->GetActorLocation());
 
-	if (Distance < AggroRadius)
+	if (Distance > 20000)
+	{
+		TargetShip = nullptr;
+		ToggleArrows(false);
+	}
+	else
 	{
 		EngagePlayer();
-	}
-	else ToggleArrows(false);
+	}		
 }
 
 void ANPCShip::EngagePlayer()
 {
 	TargetShip = PlayerShipRef;
-	Destination = PlayerShipRef->GetActorLocation();
-	FireWeapons();
+	if (IsValid(TargetShip)) Destination = TargetShip->GetActorLocation();
 }

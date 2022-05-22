@@ -16,7 +16,6 @@ APlayerShip::APlayerShip()
 	PrimaryActorTick.bCanEverTick = true;
 
 	CameraAttach = CreateDefaultSubobject<USceneComponent>(TEXT("Camera Attach"));
-	//CameraAttach->AttachToComponent(PhysicsRoot, FAttachmentTransformRules::KeepRelativeTransform);
 
 	CameraAzimuth = CreateDefaultSubobject<USceneComponent>(TEXT("Camera Azimuth"));
 	CameraAzimuth->AttachToComponent(CameraAttach, FAttachmentTransformRules::KeepRelativeTransform);
@@ -31,22 +30,42 @@ APlayerShip::APlayerShip()
 
 	TargetField = CreateDefaultSubobject<USphereComponent>(TEXT("Target Field"));
 	TargetField->AttachToComponent(PhysicsRoot, FAttachmentTransformRules::KeepRelativeTransform);
-	TargetField->SetSphereRadius(10000.f);
+	TargetField->SetSphereRadius(6000.f);
 }
 
 void APlayerShip::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (bIsDestroyed) SendMessageToUI(FText::FromString(TEXT("Your ship was destroyed permanently.")));
-	else
-	{
-		ScanTimer += DeltaTime;
-		if (ScanTimer > ScanFrequency)
-		{
-			SendArmorFuelToUI(GetHealthPercent(), GetFuelPercent());
+	CameraAttach->SetWorldLocation(FMath::VInterpTo(CameraAttach->GetComponentLocation(), this->GetActorLocation(), DeltaTime, 5.f));
 
-			ScanTimer = 0.f;
+	if (!bPhoenixReady) PhoenixTimer += DeltaTime;
+	if (PhoenixTimer > 60.f)
+	{
+		bPhoenixReady = true;
+	}
+
+	ScanTimer += DeltaTime;
+	if (ScanTimer > ScanFrequency)
+	{
+		SendArmorFuelToUI(CurrentShield / MaxShield, CurrentArmor / MaxArmor, CurrentFuel / MaxFuel, PhoenixTimer / 60.f);
+		ScanTimer = 0.f;
+
+		if (bIsDestroyed && bPhoenixReady)
+		{
+			SendMessageToUI(FText::FromString(TEXT("Phoenix systems activated. Ship has been reconstituted with minimal abilities.")));
+			UpgradeShip(true);
+			PhoenixTimer = 0.f;
+			bPhoenixReady = false;
+			bIsDestroyed = false;
+		}
+		else if (bIsDestroyed)
+		{
+			SendMessageToUI(FText::FromString(TEXT("Your ship was destroyed permanently.")));
+			ShipPermanentDeath();
+		}
+		else
+		{
 			ScanForTargets();
 
 			if (IsValid(ClosestTarget))
@@ -57,10 +76,8 @@ void APlayerShip::Tick(float DeltaTime)
 					TargetShip = Ship;
 					ClosestTarget->ToggleArrows(true);
 				}
-			}				
-		}
-
-		CameraAttach->SetWorldLocation(FMath::VInterpTo(CameraAttach->GetComponentLocation(), this->GetActorLocation(), DeltaTime, 5.f));
+			}
+		}			
 	}
 }
 
@@ -71,8 +88,6 @@ void APlayerShip::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	if (PlayerInputComponent) // If this fails, change back to the InputComponent variable
 	{
 		// Action bindings
-		PlayerInputComponent->BindAction("PrimaryAction", IE_Pressed, this, &APlayerShip::StartLeftClick);
-		PlayerInputComponent->BindAction("PrimaryAction", IE_Released, this, &APlayerShip::StopLeftClick);
 		PlayerInputComponent->BindAction("SpeedBoost", IE_Pressed, this, &APlayerShip::InputStartSpeedBoost);
 		PlayerInputComponent->BindAction("SpeedBoost", IE_Released, this, &APlayerShip::InputStopSpeedBoost);
 		PlayerInputComponent->BindAction("TabTarget", IE_Pressed, this, &APlayerShip::SelectClosestTarget);
@@ -83,21 +98,44 @@ void APlayerShip::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	else { UE_LOG(LogTemp, Error, TEXT("Input component NOT found!")); }
 }
 
-void APlayerShip::UpgradeShip()
+void APlayerShip::ApplyLootableBonus(float InArmor, float InFuel)
 {
+	CurrentArmor += InArmor;
+	CurrentArmor = FMath::Clamp(CurrentArmor, 0, MaxArmor);
+
+	CurrentFuel += InFuel;
+	CurrentFuel = FMath::Clamp(CurrentFuel, 0, MaxFuel);
+}
+
+void APlayerShip::ManualSelectTarget(ANPCShip* InNewTarget)
+{
+	if (IsValid(ClosestTarget)) ClosestTarget->ToggleArrows(false);
+	ClosestTarget = InNewTarget;
+	if (IsValid(ClosestTarget)) ClosestTarget->ToggleArrows(true);
+}
+
+void APlayerShip::UpgradeShip(bool IsTierOneReset)
+{
+	if (IsTierOneReset) UpgradeLevel = 1;
+	else ++UpgradeLevel;
+	UpgradeLevel = FMath::Clamp(UpgradeLevel, 1, 4);
+
+	switch (UpgradeLevel)
+	{
+	case 1: break;
+	case 2: break;
+	case 3: break;
+	case 4: bShieldEnabled = true; break;
+	}
+
+	CurrentShield = MaxShield;
+	CurrentArmor = MaxArmor;
+	CurrentFuel = MaxFuel;
+
+	//SetupTurrets();
 	// Set static mesh
 	// Update physics mass
 	// Update turret amounts -> turret damage
-}
-
-void APlayerShip::StartLeftClick()
-{
-	bPrimaryPressed = true;
-}
-
-void APlayerShip::StopLeftClick()
-{
-	bPrimaryPressed = false;
 }
 
 void APlayerShip::InputCameraZoomIn()
@@ -136,6 +174,8 @@ void APlayerShip::ScanForTargets()
 
 void APlayerShip::SelectClosestTarget()
 {
+	if (IsValid(ClosestTarget)) ClosestTarget->ToggleArrows(false);
+
 	float ShortestDistance = 50000.f;
 	for (ANPCShip* NPCShip : AllTargets)
 	{

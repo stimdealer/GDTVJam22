@@ -15,8 +15,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	AJamShipBase* PlayerShipRef = nullptr;
 
-	float AggroRadius = 10000.f;
-
 	virtual void Tick(float DeltaTime) override;
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Target Arrows")

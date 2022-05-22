@@ -31,12 +31,24 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FVector Destination;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float TurretsFirepower = 5.f;
+
+	float MaxShield = 100.f;
+	float CurrentShield = 100.f;
+
+	float MaxArmor = 100.f;
+	float CurrentArmor = 100.f;
+
+	float MaxFuel = 100.f;
+	float CurrentFuel = 100.f;
+
+	bool bShieldEnabled = false;
+	bool bShieldDown = false;
 	bool bIsBoosting = false;
 	bool bIsDestroyed = false;
 
 	void SetupTurret(FName InSocket, ETurretType InType);
-
-	virtual void BeginPlay() override;
 
 	void FireWeapons();
 
@@ -47,21 +59,13 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void ShipApplyDamage(float InDamage);
 
-	float GetHealthPercent();
-	float GetFuelPercent();
-
 private:
 	bool bIsTurretsAimedAtTarget = false;
 	bool bIsTurretsInRange = false;
 
 	float WeaponsTimer = 0.f;
-	float TurretsFirepower = 5.f;
-
-	float MaxHealth = 100.f;
-	float CurrentHealth = 100.f;
-
-	float MaxFuel = 100.f;
-	float CurrentFuel = 100.f;
+	float ShieldRegenTimer = 0.f;
+	float ShieldRegenDelay = 0.f;
 
 	float MaxSpeed = 500.f;
 	float Thrust = 50000.f;

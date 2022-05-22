@@ -23,16 +23,34 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "UI Functions")
-	void SendArmorFuelToUI(float InArmorPercent, float InFuelPercent);
+	void SendArmorFuelToUI(float InShieldPercent, float InArmorPercent, float InFuelPercent, float InPhoenixPercent);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "UI Functions")
 	void SendMessageToUI(const FText& InMessage);
 
-	void UpgradeShip();
+	UFUNCTION(BlueprintImplementableEvent, Category = "UI Functions")
+	void ShipPermanentDeath();
+
+	UFUNCTION(BlueprintCallable)
+	void ApplyLootableBonus(float InArmor, float InFuel);
+
+	UFUNCTION(BlueprintCallable)
+	void ManualSelectTarget(ANPCShip* InNewTarget);
+
+	UFUNCTION(BlueprintCallable)
+	void UpgradeShip(bool IsTierOneReset = false);
 
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	USphereComponent* TargetField;
+
+	UStaticMesh* ShipTier4 = nullptr;
+	UStaticMesh* ShipTier3 = nullptr;
+	UStaticMesh* ShipTier2 = nullptr;
+	UStaticMesh* ShipTier1 = nullptr;
+
+	UStaticMesh* TurretLaser = nullptr;
+	UStaticMesh* TurretRocket = nullptr;
 
 private:
 	TArray<ANPCShip*> AllTargets;
@@ -43,13 +61,15 @@ private:
 	USceneComponent* CameraElevation;
 	UCameraComponent* TopDownCamera;
 
-	bool bPrimaryPressed;
 	float ScanFrequency = 0.5f;
 	float ScanTimer = 0.f;
 
+	bool bPhoenixReady = true;
+	float PhoenixTimer = 0.f;
+
+	int32 UpgradeLevel = 4;
+
 	// Controls
-	void StartLeftClick();
-	void StopLeftClick();
 	void InputCameraZoomIn();
 	void InputCameraZoomOut();
 	void InputStartSpeedBoost();
