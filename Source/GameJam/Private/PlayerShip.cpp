@@ -91,6 +91,8 @@ void APlayerShip::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 		PlayerInputComponent->BindAction("SpeedBoost", IE_Pressed, this, &APlayerShip::InputStartSpeedBoost);
 		PlayerInputComponent->BindAction("SpeedBoost", IE_Released, this, &APlayerShip::InputStopSpeedBoost);
 		PlayerInputComponent->BindAction("TabTarget", IE_Pressed, this, &APlayerShip::SelectClosestTarget);
+		PlayerInputComponent->BindAction("FireMissile", IE_Pressed, this, &APlayerShip::InputFireMissile);
+		PlayerInputComponent->BindAction("LaunchFighters", IE_Pressed, this, &APlayerShip::InputLaunchFighters);
 
 		PlayerInputComponent->BindAction("CameraZoomIn", IE_Pressed, this, &APlayerShip::InputCameraZoomIn);
 		PlayerInputComponent->BindAction("CameraZoomOut", IE_Pressed, this, &APlayerShip::InputCameraZoomOut);
@@ -105,13 +107,6 @@ void APlayerShip::ApplyLootableBonus(float InArmor, float InFuel)
 
 	CurrentFuel += InFuel;
 	CurrentFuel = FMath::Clamp(CurrentFuel, 0, MaxFuel);
-}
-
-void APlayerShip::ManualSelectTarget(ANPCShip* InNewTarget)
-{
-	if (IsValid(ClosestTarget)) ClosestTarget->ToggleArrows(false);
-	ClosestTarget = InNewTarget;
-	if (IsValid(ClosestTarget)) ClosestTarget->ToggleArrows(true);
 }
 
 void APlayerShip::UpgradeShip(bool IsTierOneReset)
@@ -158,6 +153,16 @@ void APlayerShip::InputStopSpeedBoost()
 	bIsBoosting = false;
 }
 
+void APlayerShip::InputFireMissile()
+{
+	SendMessageToUI(FText::FromString(TEXT("Launching a missile at current target.")));
+}
+
+void APlayerShip::InputLaunchFighters()
+{
+	SendMessageToUI(FText::FromString(TEXT("Deploying fighters to defend the ship!")));
+}
+
 void APlayerShip::ScanForTargets()
 {
 	AllTargets.Empty();
@@ -190,5 +195,12 @@ void APlayerShip::SelectClosestTarget()
 			}
 		}
 	}
+	if (IsValid(ClosestTarget)) ClosestTarget->ToggleArrows(true);
+}
+
+void APlayerShip::ManualSelectTarget(ANPCShip* InNewTarget)
+{
+	if (IsValid(ClosestTarget)) ClosestTarget->ToggleArrows(false);
+	ClosestTarget = InNewTarget;
 	if (IsValid(ClosestTarget)) ClosestTarget->ToggleArrows(true);
 }

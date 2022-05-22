@@ -26,7 +26,7 @@ public:
 	void SendArmorFuelToUI(float InShieldPercent, float InArmorPercent, float InFuelPercent, float InPhoenixPercent);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "UI Functions")
-	void SendMessageToUI(const FText& InMessage);
+	void SendMessageToUI(const FText& InMessage, bool DisplayImmediately = false);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "UI Functions")
 	void ShipPermanentDeath();
@@ -50,7 +50,6 @@ protected:
 	UStaticMesh* ShipTier1 = nullptr;
 
 	UStaticMesh* TurretLaser = nullptr;
-	UStaticMesh* TurretRocket = nullptr;
 
 private:
 	TArray<ANPCShip*> AllTargets;
@@ -74,6 +73,8 @@ private:
 	void InputCameraZoomOut();
 	void InputStartSpeedBoost();
 	void InputStopSpeedBoost();
+	void InputFireMissile();
+	void InputLaunchFighters();
 
 	void ScanForTargets();
 	void SelectClosestTarget();

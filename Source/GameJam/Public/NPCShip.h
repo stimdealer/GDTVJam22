@@ -20,6 +20,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Target Arrows")
 	void ToggleArrows(bool IsVisible);
 
+	UFUNCTION(BlueprintImplementableEvent, Category = "Target Arrows")
+	void UpdateStats(float InShieldPercent, float InArmorPercent);
+
 private:
 	void CheckDistanceToPlayer();
 

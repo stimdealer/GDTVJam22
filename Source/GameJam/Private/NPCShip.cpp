@@ -9,6 +9,8 @@ void ANPCShip::Tick(float DeltaTime)
 
 	if (bIsDestroyed) this->Destroy();
 	else CheckDistanceToPlayer();
+
+	UpdateStats(CurrentShield / MaxShield, CurrentArmor / MaxArmor);
 }
 
 void ANPCShip::CheckDistanceToPlayer()
