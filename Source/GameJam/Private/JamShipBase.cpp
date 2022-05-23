@@ -5,6 +5,7 @@
 
 #include "Kismet/KismetMathLibrary.h"
 #include "Engine/Public/DrawDebugHelpers.h"
+#include "Components/BoxComponent.h"
 
 // Sets default values
 AJamShipBase::AJamShipBase()
@@ -49,25 +50,14 @@ void AJamShipBase::Tick(float DeltaTime)
 		if (WeaponsTimer > 0.5f)
 		{
 			WeaponsTimer = 0.f;
-			FireWeapons();
+			FireTurrets();
 		}
 	}
 }
 
-void AJamShipBase::FireWeapons()
+void AJamShipBase::FireTurrets()
 {
 	if (bIsTurretsInRange && bIsTurretsAimedAtTarget) TargetShip->ShipApplyDamage(TurretsFirepower);
-}
-
-void AJamShipBase::SetupTurret(FName InSocket, ETurretType InType)
-{
-	if (PhysicsRoot->GetStaticMesh()->FindSocket(InSocket))
-	{
-		UStaticMeshComponent* NewTurret = NewObject<UStaticMeshComponent>(this);
-		NewTurret->RegisterComponent();
-		NewTurret->AttachToComponent(PhysicsRoot, FAttachmentTransformRules::KeepRelativeTransform, InSocket);
-		Turrets.Add(NewTurret);
-	}
 }
 
 void AJamShipBase::MoveToDestination(float InDelta)
@@ -129,7 +119,7 @@ void AJamShipBase::TurretsTracking(float InDelta)
 	double NewYaw = 0.0;
 	for (UStaticMeshComponent* Turret : Turrets)
 	{
-		if (Turret->GetStaticMesh()->FindSocket(TEXT("Fire")))
+		if (IsValid(Turret) && Turret->GetStaticMesh()->FindSocket(TEXT("Fire")))
 		{
 			if (IsValid(TargetShip))
 			{

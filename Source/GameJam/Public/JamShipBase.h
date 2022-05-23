@@ -6,9 +6,6 @@
 #include "GameFramework/Pawn.h"
 #include "JamShipBase.generated.h"
 
-UENUM()
-enum ETurretType { Laser, Cannon, Rocket };
-
 UCLASS()
 class GAMEJAM_API AJamShipBase : public APawn
 {
@@ -20,10 +17,10 @@ public:
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<UStaticMeshComponent*> Turrets;
+	UStaticMeshComponent* PhysicsRoot;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	UStaticMeshComponent* PhysicsRoot;
+	TArray<UStaticMeshComponent*> Turrets;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	AJamShipBase* TargetShip = nullptr;
@@ -32,25 +29,26 @@ protected:
 	FVector Destination;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float TurretsFirepower = 5.f;
+	float TurretsFirepower = 10.f;
 
-	float MaxShield = 100.f;
-	float CurrentShield = 100.f;
+	float MaxShield = 200.f;
+	float CurrentShield = 200.f;
 
-	float MaxArmor = 100.f;
-	float CurrentArmor = 100.f;
+	float MaxArmor = 200.f;
+	float CurrentArmor = 200.f;
 
 	float MaxFuel = 100.f;
 	float CurrentFuel = 100.f;
 
-	bool bShieldEnabled = false;
+	float MaxSpeed = 1000.f;
+	float TurnSpeed = 120.f;
+
+	bool bShieldEnabled = true;
 	bool bShieldDown = false;
 	bool bIsBoosting = false;
 	bool bIsDestroyed = false;
 
-	void SetupTurret(FName InSocket, ETurretType InType);
-
-	void FireWeapons();
+	void FireTurrets();
 
 public:	
 	// Called every frame
@@ -67,9 +65,7 @@ private:
 	float ShieldRegenTimer = 0.f;
 	float ShieldRegenDelay = 0.f;
 
-	float MaxSpeed = 500.f;
 	float Thrust = 50000.f;
-	float TurnSpeed = 75.f;
 	float WeaponsRange = 6000.f;
 
 	void MoveToDestination(float InDelta);

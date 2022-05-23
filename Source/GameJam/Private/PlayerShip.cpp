@@ -7,6 +7,7 @@
 #include "UObject/ConstructorHelpers.h"
 #include "Camera/CameraComponent.h"
 #include "Components/SphereComponent.h"
+#include "Components/BoxComponent.h"
 
 // Local includes
 #include "NPCShip.h"
@@ -31,6 +32,7 @@ APlayerShip::APlayerShip()
 	TargetField = CreateDefaultSubobject<USphereComponent>(TEXT("Target Field"));
 	TargetField->AttachToComponent(PhysicsRoot, FAttachmentTransformRules::KeepRelativeTransform);
 	TargetField->SetSphereRadius(6000.f);
+	TargetField->bHiddenInGame = false;
 }
 
 void APlayerShip::Tick(float DeltaTime)
@@ -38,6 +40,7 @@ void APlayerShip::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	CameraAttach->SetWorldLocation(FMath::VInterpTo(CameraAttach->GetComponentLocation(), this->GetActorLocation(), DeltaTime, 5.f));
+	UpdateQuestMarkers();
 
 	if (!bPhoenixReady) PhoenixTimer += DeltaTime;
 	if (PhoenixTimer > 60.f)
@@ -100,37 +103,126 @@ void APlayerShip::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	else { UE_LOG(LogTemp, Error, TEXT("Input component NOT found!")); }
 }
 
-void APlayerShip::ApplyLootableBonus(float InArmor, float InFuel)
+void APlayerShip::ApplyLootableBonus(int32 InType, int32 InAmount)
 {
-	CurrentArmor += InArmor;
-	CurrentArmor = FMath::Clamp(CurrentArmor, 0, MaxArmor);
-
-	CurrentFuel += InFuel;
-	CurrentFuel = FMath::Clamp(CurrentFuel, 0, MaxFuel);
+	switch (InType)
+	{
+	case 0:
+		CurrentShield += InAmount;
+		CurrentShield = FMath::Clamp(CurrentShield, 0, MaxShield);
+		break;
+	case 1:
+		CurrentArmor += InAmount;
+		CurrentArmor = FMath::Clamp(CurrentArmor, 0, MaxArmor);
+		break;
+	case 2:
+		CurrentFuel += InAmount;
+		CurrentFuel = FMath::Clamp(CurrentFuel, 0, MaxFuel);
+		break;
+	case 3:
+		CurrentOre += InAmount;
+		CurrentOre = FMath::Clamp(CurrentOre, 0, MaxOre);
+		if (CurrentOre == MaxOre) UpgradeShip();
+		break;
+	}
 }
 
 void APlayerShip::UpgradeShip(bool IsTierOneReset)
 {
 	if (IsTierOneReset) UpgradeLevel = 1;
+	else if (UpgradeLevel == 4) return;
 	else ++UpgradeLevel;
 	UpgradeLevel = FMath::Clamp(UpgradeLevel, 1, 4);
 
 	switch (UpgradeLevel)
 	{
-	case 1: break;
-	case 2: break;
-	case 3: break;
-	case 4: bShieldEnabled = true; break;
+	case 1:
+		MaxShield = 0.f;
+		MaxArmor = 100.f;
+		MaxSpeed = 500.f;
+		TurnSpeed = 75.f;
+		bBroadsides = false;
+		bLauncher = false;
+		bFighters = false;
+		bShieldEnabled = false;
+		MaxOre = 100;
+		break;
+	case 2:
+		MaxShield = 0.f;
+		MaxArmor = 150.f;
+		MaxSpeed = 650.f;
+		TurnSpeed = 90.f;
+		bBroadsides = true;
+		bLauncher = false;
+		bFighters = false;
+		bShieldEnabled = false;
+		MaxOre = 150;
+		break;
+	case 3:
+		MaxShield = 100.f;
+		MaxArmor = 150.f;
+		MaxSpeed = 800.f;
+		TurnSpeed = 105.f;
+		bBroadsides = true;
+		bLauncher = true;
+		bFighters = false;
+		bShieldEnabled = true;
+		MaxOre = 200;
+		break;
+	case 4:
+		MaxShield = 200.f;
+		MaxArmor = 200.f;
+		MaxSpeed = 1000.f;
+		TurnSpeed = 120.f;
+		bBroadsides = true;
+		bLauncher = true;
+		bFighters = true;
+		bShieldEnabled = true;
+		MaxOre = 0;
+		break;
 	}
 
 	CurrentShield = MaxShield;
 	CurrentArmor = MaxArmor;
 	CurrentFuel = MaxFuel;
+	CurrentOre = 0;
 
-	//SetupTurrets();
-	// Set static mesh
-	// Update physics mass
-	// Update turret amounts -> turret damage
+	SendUpgradeLevelToUI(UpgradeLevel);
+}
+
+void APlayerShip::AddQuest(const FString& InQuestName, FVector InLocation)
+{
+	FQuestMarker NewQuestMarker;
+	NewQuestMarker.MarkerTitle = InQuestName;
+	NewQuestMarker.Location = InLocation;
+	NewQuestMarker.bReached = false;
+	NewQuestMarker.bCompleted = false;
+	ActiveQuestMarkers.Add(NewQuestMarker);
+	FString NewQuestString = FString(TEXT("New objective added: ") + InQuestName);
+	SendMessageToUI(FText::FromString(NewQuestString));
+}
+
+void APlayerShip::UpdateQuestMarkers()
+{
+	APlayerController* PC = GetWorld()->GetFirstPlayerController();
+	if (IsValid(PC))
+	{
+		FVector2D ScreenPosition;
+
+		for (const FQuestMarker& Marker : ActiveQuestMarkers)
+		{
+			if (Marker.bCompleted) RemoveQuestMarkerUI(Marker);
+
+			bool bEnlargeIcon = false;
+			float Distance = FVector::Distance(this->GetActorLocation(), Marker.Location);
+			if (Distance < 25000.f) bEnlargeIcon = true;
+
+			if (PC->ProjectWorldLocationToScreen(Marker.Location, ScreenPosition, true))
+			{
+				UpdateQuestMarkerUI(Marker, ScreenPosition, bEnlargeIcon);
+			}
+		}
+	}
 }
 
 void APlayerShip::InputCameraZoomIn()
