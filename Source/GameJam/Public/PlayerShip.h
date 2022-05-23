@@ -68,7 +68,7 @@ protected:
 
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "UI Functions")
-	void SendArmorFuelToUI(float InShieldPercent, float InArmorPercent, float InFuelPercent, float InPhoenixPercent);
+	void SendArmorFuelToUI(float InShieldPercent, float InArmorPercent, float InFuelPercent, float InOrePercent, float InPhoenixPercent);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "UI Functions")
 	void SendMessageToUI(const FText& InMessage, bool DisplayImmediately = false);
@@ -104,10 +104,6 @@ private:
 
 	bool bPhoenixReady = true;
 	float PhoenixTimer = 0.f;
-
-	bool bBroadsides = true;
-	bool bLauncher = true;
-	bool bFighters = true;
 
 	int32 MaxOre = 0;
 	int32 CurrentOre = 0;

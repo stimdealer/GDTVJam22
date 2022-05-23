@@ -26,6 +26,7 @@ void AJamShipBase::Tick(float DeltaTime)
 
 	MoveToDestination(DeltaTime);
 	TurretsTracking(DeltaTime);
+	BroadsidesTracking(TargetShip);
 
 	if (bIsBoosting) CurrentFuel -= DeltaTime;
 
@@ -73,7 +74,7 @@ void AJamShipBase::MoveToDestination(float InDelta)
 	if (IsValid(Prim))
 	{
 		// Apply rotation
-		Prim->SetWorldRotation(FMath::RInterpTo(Prim->GetComponentRotation(), Heading.Rotation(), InDelta, float(TurnSpeed / Prim->GetMass())));
+		if (Distance > 500.f) Prim->SetWorldRotation(FMath::RInterpTo(Prim->GetComponentRotation(), Heading.Rotation(), InDelta, float(TurnSpeed / Prim->GetMass())));
 
 		float Momentum;
 		FVector Direction;
@@ -88,11 +89,12 @@ void AJamShipBase::MoveToDestination(float InDelta)
 		if (bIsBoosting && CurrentFuel > 0.f) NewMaxSpeed = MaxSpeed * 2.f;
 		else NewMaxSpeed = MaxSpeed;
 
-		if (Distance > 200.0 && Momentum < NewMaxSpeed)
+		float Thrust = MaxSpeed * 100.f;
+
+		if (Distance > 500.0 && Momentum < NewMaxSpeed)
 		{
-			if (bIsBoosting) Thrust = 100000.f;
-			else if (Distance > 600.0) Thrust = 50000.f;
-			else Thrust = 25000.f;
+			if (bIsBoosting) Thrust = Thrust * 2.f;
+			//else if (Distance < 1000.0) Thrust = 50000.f;
 
 			Force = Prim->GetForwardVector() * Thrust * InDelta;
 		}
@@ -137,14 +139,45 @@ void AJamShipBase::TurretsTracking(float InDelta)
 				bIsTurretsInRange = TargetDistance < WeaponsRange;
 
 				// Debug lines for testing
-				if (bIsTurretsAimedAtTarget && bIsTurretsInRange) DrawDebugLine(GetWorld(), Turret->GetSocketLocation(TEXT("Fire")), TargetShip->GetActorLocation(), FColor::Green, false, 0.1f, 0.f, 10.f);
-				else DrawDebugLine(GetWorld(), Turret->GetSocketLocation(TEXT("Fire")), TargetShip->GetActorLocation(), FColor::Red, false, 0.1f, 0.f, 10.f);
+				//if (bIsTurretsAimedAtTarget && bIsTurretsInRange) DrawDebugLine(GetWorld(), Turret->GetSocketLocation(TEXT("Fire")), TargetShip->GetActorLocation(), FColor::Green, false, 0.1f, 0.f, 10.f);
+				//else DrawDebugLine(GetWorld(), Turret->GetSocketLocation(TEXT("Fire")), TargetShip->GetActorLocation(), FColor::Red, false, 0.1f, 0.f, 10.f);
 			}
 
 			FRotator NewRotation = FMath::RInterpConstantTo(Turret->GetRelativeRotation(), FRotator(0.0, NewYaw, 0.0), InDelta, 100.f);
 			Turret->SetRelativeRotation(NewRotation);
 		}
 	}
+}
+
+void AJamShipBase::BroadsidesTracking(AJamShipBase* InTarget)
+{
+	if (!IsValid(InTarget)) return;
+	if (!PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Broadsides_Stbd"))) return;
+	if (!PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Broadsides_Port"))) return;
+
+	//FVector StbdLocation = PhysicsRoot->GetSocketLocation(TEXT("Broadsides_Stbd"));
+	//FVector PortLocation = PhysicsRoot->GetSocketLocation(TEXT("Broadsides_Port"));
+
+	bool bStbdAngleValid = false;
+	bool bPortAngleValid = false;
+
+	FVector DirectionToTarget = FVector(InTarget->GetActorLocation() - this->GetActorLocation()).GetSafeNormal();
+	//DrawDebugLine(GetWorld(), this->GetActorLocation(), FVector((DirectionToTarget * 2000.f) + this->GetActorLocation()), FColor::Purple, false, 0.1f, 0.f, 10.f);
+
+	bStbdAngleValid = FMath::RadiansToDegrees(acosf(FVector::DotProduct(this->GetActorRightVector(), DirectionToTarget))) < 30.f;
+	bPortAngleValid = FMath::RadiansToDegrees(acosf(FVector::DotProduct(this->GetActorRightVector() * -1.f, DirectionToTarget))) < 30.f;
+
+	if (bStbdAngleValid) GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Green, TEXT("Stbd Broadsides angle valid!"));
+	if (bPortAngleValid) GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Green, TEXT("Port Broadsides angle valid!"));
+
+	//GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Green, FString::SanitizeFloat(StbdAngleToTarget));
+	//GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Red, FString::SanitizeFloat(PortAngleToTarget));
+
+	//DrawDebugLine(GetWorld(), this->GetActorLocation(), FVector((this->GetActorRightVector() * 2000.f) + this->GetActorLocation()), FColor::Green, false, 0.1f, 0.f, 10.f);
+	//DrawDebugLine(GetWorld(), this->GetActorLocation(), FVector((this->GetActorRightVector() * -2000.f) + this->GetActorLocation()), FColor::Red, false, 0.1f, 0.f, 10.f);
+	
+	//if (bIsTurretsAimedAtTarget && bIsTurretsInRange) DrawDebugLine(GetWorld(), Turret->GetSocketLocation(TEXT("Fire")), TargetShip->GetActorLocation(), FColor::Green, false, 0.1f, 0.f, 10.f);
+	//else DrawDebugLine(GetWorld(), Turret->GetSocketLocation(TEXT("Fire")), TargetShip->GetActorLocation(), FColor::Red, false, 0.1f, 0.f, 10.f);
 }
 
 void AJamShipBase::ShipApplyDamage(float InDamage)

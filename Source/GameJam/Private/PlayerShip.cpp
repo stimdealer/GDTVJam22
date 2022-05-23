@@ -44,6 +44,7 @@ APlayerShip::APlayerShip()
 	MaxSpeed = 1000.f;
 	TurnSpeed = 120.f;
 	bShieldEnabled = true;
+	bBroadsides = true;
 }
 
 void APlayerShip::Tick(float DeltaTime)
@@ -62,7 +63,7 @@ void APlayerShip::Tick(float DeltaTime)
 	ScanTimer += DeltaTime;
 	if (ScanTimer > ScanFrequency)
 	{
-		SendArmorFuelToUI(CurrentShield / MaxShield, CurrentArmor / MaxArmor, CurrentFuel / MaxFuel, PhoenixTimer / 60.f);
+		SendArmorFuelToUI(CurrentShield / MaxShield, CurrentArmor / MaxArmor, CurrentFuel / MaxFuel, (CurrentOre + 1) / (MaxOre + 1), PhoenixTimer / 60.f);
 		ScanTimer = 0.f;
 
 		if (bIsDestroyed && bPhoenixReady)
@@ -275,7 +276,10 @@ void APlayerShip::ScanForTargets()
 	AllTargets.Empty();
 
 	TArray<AActor*> OverlappingActors;
-	TargetField->GetOverlappingActors(OverlappingActors, TSubclassOf<AActor>());
+	TargetField->GetOverlappingActors(OverlappingActors, TSubclassOf<ANPCShip>());
+
+	//GEngine->AddOnScreenDebugMessage(-1, 0.5f, FColor::Cyan, FString::FromInt(OverlappingActors.Num()));
+
 	for (AActor* ShipActor : OverlappingActors)
 	{
 		ANPCShip* NPCShip = Cast<ANPCShip>(ShipActor);

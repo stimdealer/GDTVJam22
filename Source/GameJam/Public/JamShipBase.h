@@ -49,6 +49,10 @@ protected:
 	bool bIsBoosting = false;
 	bool bIsDestroyed = false;
 
+	bool bBroadsides = false;
+	bool bLauncher = false;
+	bool bFighters = false;
+
 	void FireTurrets();
 
 public:	
@@ -66,10 +70,10 @@ private:
 	float ShieldRegenTimer = 0.f;
 	float ShieldRegenDelay = 0.f;
 
-	float Thrust = 50000.f;
 	float WeaponsRange = 6000.f;
 
 	void MoveToDestination(float InDelta);
 
 	void TurretsTracking(float InDelta);
+	void BroadsidesTracking(AJamShipBase* InTarget);
 };
