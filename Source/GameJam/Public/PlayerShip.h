@@ -85,6 +85,9 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Quest Markers")
 	void RemoveQuestMarkerUI(const FQuestMarker& InMarker);
 
+	UFUNCTION(BlueprintImplementableEvent, Category = "Ship Mechanics")
+	void PhoenixExplosion();
+
 private:
 	TArray<ANPCShip*> AllTargets;
 	ANPCShip* ClosestTarget = nullptr;

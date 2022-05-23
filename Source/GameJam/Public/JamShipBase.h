@@ -28,22 +28,23 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FVector Destination;
 
+	// Default stats set up for small NPC ship.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float TurretsFirepower = 10.f;
+	float TurretsFirepower = 5.f;
 
-	float MaxShield = 200.f;
-	float CurrentShield = 200.f;
+	float MaxShield = 0.f;
+	float CurrentShield = 0.f;
 
-	float MaxArmor = 200.f;
-	float CurrentArmor = 200.f;
+	float MaxArmor = 100.f;
+	float CurrentArmor = 100.f;
 
 	float MaxFuel = 100.f;
 	float CurrentFuel = 100.f;
 
-	float MaxSpeed = 1000.f;
-	float TurnSpeed = 120.f;
+	float MaxSpeed = 500.f;
+	float TurnSpeed = 80.f;
 
-	bool bShieldEnabled = true;
+	bool bShieldEnabled = false;
 	bool bShieldDown = false;
 	bool bIsBoosting = false;
 	bool bIsDestroyed = false;

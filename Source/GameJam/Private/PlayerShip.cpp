@@ -33,6 +33,17 @@ APlayerShip::APlayerShip()
 	TargetField->AttachToComponent(PhysicsRoot, FAttachmentTransformRules::KeepRelativeTransform);
 	TargetField->SetSphereRadius(6000.f);
 	TargetField->bHiddenInGame = false;
+
+	TurretsFirepower = 10.f;
+	MaxShield = 200.f;
+	CurrentShield = 200.f;
+	MaxArmor = 200.f;
+	CurrentArmor = 200.f;
+	MaxFuel = 100.f;
+	CurrentFuel = 100.f;
+	MaxSpeed = 1000.f;
+	TurnSpeed = 120.f;
+	bShieldEnabled = true;
 }
 
 void APlayerShip::Tick(float DeltaTime)
@@ -129,7 +140,11 @@ void APlayerShip::ApplyLootableBonus(int32 InType, int32 InAmount)
 
 void APlayerShip::UpgradeShip(bool IsTierOneReset)
 {
-	if (IsTierOneReset) UpgradeLevel = 1;
+	if (IsTierOneReset)
+	{
+		UpgradeLevel = 1;
+		PhoenixExplosion();
+	}
 	else if (UpgradeLevel == 4) return;
 	else ++UpgradeLevel;
 	UpgradeLevel = FMath::Clamp(UpgradeLevel, 1, 4);
