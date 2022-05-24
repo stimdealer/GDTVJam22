@@ -7,16 +7,31 @@
 #include "Engine/Public/DrawDebugHelpers.h"
 #include "Components/BoxComponent.h"
 
+#include "NiagaraSystem.h"
+#include "NiagaraComponent.h"
+#include "NiagaraFunctionLibrary.h"
+
 // Sets default values
 AJamShipBase::AJamShipBase()
 {
- 	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+
+	NS_TurretBeam = LoadObject<UNiagaraSystem>(nullptr, TEXT("NiagaraSystem'/Game/VFX/NS_TurretFire.NS_TurretFire'"), nullptr, LOAD_None, nullptr);
+	if (!ensure(NS_TurretBeam != nullptr)) return;
+	NS_BroadsidesFire = LoadObject<UNiagaraSystem>(nullptr, TEXT("NiagaraSystem'/Game/VFX/NS_BroadsidesFire.NS_BroadsidesFire'"), nullptr, LOAD_None, nullptr);
+	if (!ensure(NS_BroadsidesFire != nullptr)) return;
 
 	PhysicsRoot = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Physics Root"));
 	PhysicsRoot->SetRelativeRotation(FRotator(0.0, -90.0, 0.0));
 	this->RootComponent = PhysicsRoot;
 	PhysicsRoot->SetSimulatePhysics(true);
+}
+
+void AJamShipBase::BeginPlay()
+{
+	Super::BeginPlay();
+
+	SpawnWeaponsVFX();
 }
 
 // Called every frame
@@ -26,39 +41,47 @@ void AJamShipBase::Tick(float DeltaTime)
 
 	MoveToDestination(DeltaTime);
 	TurretsTracking(DeltaTime);
-	BroadsidesTracking(TargetShip);
+	BroadsidesTracking();
+
+	UpdateVFX();
 
 	if (bIsBoosting) CurrentFuel -= DeltaTime;
 
-	if (bShieldDown) ShieldRegenDelay += DeltaTime;
+	if (bShieldCooldown) ShieldRegenDelay += DeltaTime;
 	else ShieldRegenTimer += DeltaTime;
 
 	if (ShieldRegenDelay > 10.f)
 	{
 		ShieldRegenDelay = 0.f;
-		bShieldDown = false;
+		bShieldCooldown = false;
 	}
-	if (ShieldRegenTimer > 2.f)
+
+	if (!bShieldCooldown && ShieldRegenTimer > 2.5f)
 	{
 		ShieldRegenTimer = 0.f;
 		CurrentShield += MaxShield * 0.1f;
 		CurrentShield = FMath::Clamp(CurrentShield, 0, MaxShield);
 	}
 
-	if (IsValid(TargetShip))
+	WeaponsTimer += DeltaTime;
+	if (WeaponsTimer > 0.25f)
 	{
-		WeaponsTimer += DeltaTime;
-		if (WeaponsTimer > 0.5f)
-		{
-			WeaponsTimer = 0.f;
-			FireTurrets();
-		}
+		WeaponsTimer = 0.f;
+		FireWeapons();
 	}
+
+	/*
+	if (bLauncher)
+	{
+		MissileTimer += DeltaTime;
+	}
+	*/
 }
 
-void AJamShipBase::FireTurrets()
+void AJamShipBase::FireWeapons()
 {
-	if (bIsTurretsInRange && bIsTurretsAimedAtTarget) TargetShip->ShipApplyDamage(TurretsFirepower);
+	if (IsValid(TurretTargetShip) && bIsTurretsInRange && bIsTurretsAimedAtTarget) TurretTargetShip->ShipApplyDamage(TurretsFirepower);
+	if (IsValid(BroadsideTargetShip) && bBroadsidesInRange)	if (bStbdAngleValid || bPortAngleValid) BroadsideTargetShip->ShipApplyDamage(BroadsidesFirepower);
 }
 
 void AJamShipBase::MoveToDestination(float InDelta)
@@ -123,9 +146,9 @@ void AJamShipBase::TurretsTracking(float InDelta)
 	{
 		if (IsValid(Turret) && Turret->GetStaticMesh()->FindSocket(TEXT("Fire")))
 		{
-			if (IsValid(TargetShip))
+			if (IsValid(TurretTargetShip))
 			{
-				FVector TargetLocation = TargetShip->GetActorLocation();
+				FVector TargetLocation = TurretTargetShip->GetActorLocation();
 				FTransform TurretTransform = this->GetActorTransform();
 				FVector Translate = TargetLocation - Turret->GetComponentLocation();
 				FVector Inverse = UKismetMathLibrary::InverseTransformDirection(TurretTransform, Translate);
@@ -135,8 +158,7 @@ void AJamShipBase::TurretsTracking(float InDelta)
 				float TurretAngleToTarget = FMath::RadiansToDegrees(acosf(FVector::DotProduct(Turret->GetForwardVector(), Translate.GetSafeNormal())));
 				bIsTurretsAimedAtTarget = TurretAngleToTarget < 30.f;
 
-				float TargetDistance = FVector::Distance(TargetShip->GetActorLocation(), this->GetActorLocation());
-				bIsTurretsInRange = TargetDistance < WeaponsRange;
+				bIsTurretsInRange = FVector::Distance(TurretTargetShip->GetActorLocation(), this->GetActorLocation()) < TurretRange;
 
 				// Debug lines for testing
 				//if (bIsTurretsAimedAtTarget && bIsTurretsInRange) DrawDebugLine(GetWorld(), Turret->GetSocketLocation(TEXT("Fire")), TargetShip->GetActorLocation(), FColor::Green, false, 0.1f, 0.f, 10.f);
@@ -149,54 +171,130 @@ void AJamShipBase::TurretsTracking(float InDelta)
 	}
 }
 
-void AJamShipBase::BroadsidesTracking(AJamShipBase* InTarget)
+void AJamShipBase::BroadsidesTracking()
 {
-	if (!IsValid(InTarget)) return;
-	if (!PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Broadsides_Stbd"))) return;
-	if (!PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Broadsides_Port"))) return;
+	if (!IsValid(BroadsideTargetShip)) return;
 
-	//FVector StbdLocation = PhysicsRoot->GetSocketLocation(TEXT("Broadsides_Stbd"));
-	//FVector PortLocation = PhysicsRoot->GetSocketLocation(TEXT("Broadsides_Port"));
-
-	bool bStbdAngleValid = false;
-	bool bPortAngleValid = false;
-
-	FVector DirectionToTarget = FVector(InTarget->GetActorLocation() - this->GetActorLocation()).GetSafeNormal();
-	//DrawDebugLine(GetWorld(), this->GetActorLocation(), FVector((DirectionToTarget * 2000.f) + this->GetActorLocation()), FColor::Purple, false, 0.1f, 0.f, 10.f);
+	FVector DirectionToTarget = FVector(BroadsideTargetShip->GetActorLocation() - this->GetActorLocation()).GetSafeNormal();
 
 	bStbdAngleValid = FMath::RadiansToDegrees(acosf(FVector::DotProduct(this->GetActorRightVector(), DirectionToTarget))) < 30.f;
 	bPortAngleValid = FMath::RadiansToDegrees(acosf(FVector::DotProduct(this->GetActorRightVector() * -1.f, DirectionToTarget))) < 30.f;
 
-	if (bStbdAngleValid) GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Green, TEXT("Stbd Broadsides angle valid!"));
-	if (bPortAngleValid) GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Green, TEXT("Port Broadsides angle valid!"));
+	bBroadsidesInRange = FVector::Distance(BroadsideTargetShip->GetActorLocation(), this->GetActorLocation()) < BroadsideRange;
+}
 
-	//GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Green, FString::SanitizeFloat(StbdAngleToTarget));
-	//GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Red, FString::SanitizeFloat(PortAngleToTarget));
+void AJamShipBase::LaunchMissile()
+{
 
-	//DrawDebugLine(GetWorld(), this->GetActorLocation(), FVector((this->GetActorRightVector() * 2000.f) + this->GetActorLocation()), FColor::Green, false, 0.1f, 0.f, 10.f);
-	//DrawDebugLine(GetWorld(), this->GetActorLocation(), FVector((this->GetActorRightVector() * -2000.f) + this->GetActorLocation()), FColor::Red, false, 0.1f, 0.f, 10.f);
-	
-	//if (bIsTurretsAimedAtTarget && bIsTurretsInRange) DrawDebugLine(GetWorld(), Turret->GetSocketLocation(TEXT("Fire")), TargetShip->GetActorLocation(), FColor::Green, false, 0.1f, 0.f, 10.f);
-	//else DrawDebugLine(GetWorld(), Turret->GetSocketLocation(TEXT("Fire")), TargetShip->GetActorLocation(), FColor::Red, false, 0.1f, 0.f, 10.f);
 }
 
 void AJamShipBase::ShipApplyDamage(float InDamage)
 {
+	bShieldCooldown = true;
+	ShieldRegenTimer = 0.f;
+
 	float ArmorDamage = InDamage;
-	if (bShieldEnabled && !bShieldDown)
+	if (bShieldEnabled)
 	{
 		float CurrentShieldOld = CurrentShield;
 		CurrentShield -= InDamage;
 		if (CurrentShield <= 0)
 		{
 			ArmorDamage = FMath::Abs(CurrentShieldOld - InDamage);
-			bShieldDown = true;
 		}
 		else ArmorDamage = 0;
 	}
 
-	if (ArmorDamage > 0) ShieldRegenTimer = 0.f;
-
 	CurrentArmor -= ArmorDamage;
 	if (CurrentArmor <= 0) bIsDestroyed = true;
+}
+
+void AJamShipBase::UpdateVFX()
+{
+	if (NS_TurretBeam && TurretOneVFX && TurretTwoVFX)
+	{
+		if (bIsTurretsAimedAtTarget && bIsTurretsInRange && IsValid(TurretTargetShip))
+		{
+			TurretOneVFX->SetNiagaraVariableVec3(TEXT("TargetLocation"), TurretTargetShip->GetActorLocation());
+			TurretOneVFX->Activate();
+			TurretTwoVFX->SetNiagaraVariableVec3(TEXT("TargetLocation"), TurretTargetShip->GetActorLocation());
+			TurretTwoVFX->Activate();
+		}
+		else
+		{
+			TurretOneVFX->Deactivate();
+			TurretTwoVFX->Deactivate();
+		}
+	}
+		
+	if (NS_BroadsidesFire && BroadsidesStbdVFX && BroadsidesPortVFX)
+	{
+		if (bBroadsidesInRange && bStbdAngleValid) BroadsidesStbdVFX->Activate();
+		else BroadsidesStbdVFX->Deactivate();
+
+		if (bBroadsidesInRange && bPortAngleValid) BroadsidesPortVFX->Activate();
+		else BroadsidesPortVFX->Deactivate();
+	}
+}
+
+void AJamShipBase::SpawnWeaponsVFX()
+{
+	if (!NS_TurretBeam) return;
+	if (!NS_BroadsidesFire) return;
+
+	if (PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Turret_1")))
+	{
+		TurretOneVFX = UNiagaraFunctionLibrary::SpawnSystemAttached(
+			NS_TurretBeam,
+			PhysicsRoot,
+			FName("Turret_1"),
+			FVector(0.0),
+			FRotator(0.0),
+			EAttachLocation::KeepRelativeOffset,
+			true,
+			false
+		);
+	}
+
+	if (PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Turret_2")))
+	{
+		TurretTwoVFX = UNiagaraFunctionLibrary::SpawnSystemAttached(
+			NS_TurretBeam,
+			PhysicsRoot,
+			FName("Turret_2"),
+			FVector(0.0),
+			FRotator(0.0),
+			EAttachLocation::KeepRelativeOffset,
+			true,
+			false
+		);
+	}
+
+	if (PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Broadsides_Port")))
+	{
+		BroadsidesPortVFX = UNiagaraFunctionLibrary::SpawnSystemAttached(
+			NS_BroadsidesFire,
+			PhysicsRoot,
+			FName("Broadsides_Port"),
+			FVector(0.0),
+			FRotator(0.0),
+			EAttachLocation::KeepRelativeOffset,
+			true,
+			false
+		);
+	}
+
+	if (PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Broadsides_Stbd")))
+	{
+		BroadsidesStbdVFX = UNiagaraFunctionLibrary::SpawnSystemAttached(
+			NS_BroadsidesFire,
+			PhysicsRoot,
+			FName("Broadsides_Stbd"),
+			FVector(0.0),
+			FRotator(0.0),
+			EAttachLocation::KeepRelativeOffset,
+			true,
+			false
+		);
+	}
 }

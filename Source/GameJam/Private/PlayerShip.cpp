@@ -34,17 +34,22 @@ APlayerShip::APlayerShip()
 	TargetField->SetSphereRadius(6000.f);
 	TargetField->bHiddenInGame = false;
 
-	TurretsFirepower = 10.f;
-	MaxShield = 200.f;
-	CurrentShield = 200.f;
-	MaxArmor = 200.f;
-	CurrentArmor = 200.f;
+	// Initial stats for Tier 4 ship:
+	MaxShield = 500.f;
+	CurrentShield = 500.f;
+	MaxArmor = 500.f;
+	CurrentArmor = 500.f;
 	MaxFuel = 100.f;
 	CurrentFuel = 100.f;
 	MaxSpeed = 1000.f;
 	TurnSpeed = 120.f;
 	bShieldEnabled = true;
 	bBroadsides = true;
+
+	TurretsFirepower = 10.f;
+	TurretRange = 7500.f;
+
+	BroadsidesFirepower = 20.f;
 }
 
 void APlayerShip::Tick(float DeltaTime)
@@ -63,7 +68,13 @@ void APlayerShip::Tick(float DeltaTime)
 	ScanTimer += DeltaTime;
 	if (ScanTimer > ScanFrequency)
 	{
-		SendArmorFuelToUI(CurrentShield / MaxShield, CurrentArmor / MaxArmor, CurrentFuel / MaxFuel, (CurrentOre + 1) / (MaxOre + 1), PhoenixTimer / 60.f);
+		SendArmorFuelToUI(
+			CalculatePercent(CurrentShield, MaxShield),
+			CalculatePercent(CurrentArmor, MaxArmor),
+			CalculatePercent(CurrentFuel, MaxFuel),
+			CalculatePercent(CurrentOre, MaxOre),
+			CalculatePercent(PhoenixTimer, 60.f)
+		);
 		ScanTimer = 0.f;
 
 		if (bIsDestroyed && bPhoenixReady)
@@ -88,7 +99,7 @@ void APlayerShip::Tick(float DeltaTime)
 				AJamShipBase* Ship = Cast<AJamShipBase>(ClosestTarget);
 				if (IsValid(Ship))
 				{
-					TargetShip = Ship;
+					TurretTargetShip = Ship;
 					ClosestTarget->ToggleArrows(true);
 				}
 			}
@@ -145,6 +156,7 @@ void APlayerShip::UpgradeShip(bool IsTierOneReset)
 	{
 		UpgradeLevel = 1;
 		PhoenixExplosion();
+		PhysicsRoot->SetPhysicsLinearVelocity(FVector(0.0));
 	}
 	else if (UpgradeLevel == 4) return;
 	else ++UpgradeLevel;
@@ -278,35 +290,37 @@ void APlayerShip::ScanForTargets()
 	TArray<AActor*> OverlappingActors;
 	TargetField->GetOverlappingActors(OverlappingActors, TSubclassOf<ANPCShip>());
 
-	//GEngine->AddOnScreenDebugMessage(-1, 0.5f, FColor::Cyan, FString::FromInt(OverlappingActors.Num()));
-
 	for (AActor* ShipActor : OverlappingActors)
 	{
 		ANPCShip* NPCShip = Cast<ANPCShip>(ShipActor);
 		if (IsValid(NPCShip)) AllTargets.Add(NPCShip);
 	}
-	if (!IsValid(ClosestTarget)) SelectClosestTarget();
+
+	SelectClosestTarget();
 }
 
 void APlayerShip::SelectClosestTarget()
 {
-	if (IsValid(ClosestTarget)) ClosestTarget->ToggleArrows(false);
+	if (IsValid(ClosestTarget) && !bManualTargetSelected) ClosestTarget->ToggleArrows(false);
 
-	float ShortestDistance = 50000.f;
+	ANPCShip* NewClosestTarget = nullptr;
+	float ShortestDistance = 100000.f;
 	for (ANPCShip* NPCShip : AllTargets)
 	{
 		if (IsValid(NPCShip))
 		{
-			NPCShip->ToggleArrows(false);
 			float Distance = FVector::Distance(this->GetActorLocation(), NPCShip->GetActorLocation());
 			if (Distance < ShortestDistance)
 			{
 				ShortestDistance = Distance;
-				ClosestTarget = NPCShip;
+				NewClosestTarget = NPCShip;
 			}
 		}
 	}
-	if (IsValid(ClosestTarget)) ClosestTarget->ToggleArrows(true);
+	if (!IsValid(ClosestTarget) && !bManualTargetSelected) ClosestTarget = NewClosestTarget;
+	else ClosestTarget->ToggleArrows(true);
+	
+	BroadsideTargetShip = NewClosestTarget;
 }
 
 void APlayerShip::ManualSelectTarget(ANPCShip* InNewTarget)
@@ -314,4 +328,10 @@ void APlayerShip::ManualSelectTarget(ANPCShip* InNewTarget)
 	if (IsValid(ClosestTarget)) ClosestTarget->ToggleArrows(false);
 	ClosestTarget = InNewTarget;
 	if (IsValid(ClosestTarget)) ClosestTarget->ToggleArrows(true);
+}
+
+float APlayerShip::CalculatePercent(float InCurrent, float InMax)
+{
+	if (FMath::IsNearlyZero(InCurrent, 0.001)) return 0.f;
+	else return InCurrent / InMax;
 }

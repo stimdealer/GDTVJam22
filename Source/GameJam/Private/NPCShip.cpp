@@ -3,14 +3,26 @@
 
 #include "NPCShip.h"
 
+ANPCShip::ANPCShip()
+{
+	PrimaryActorTick.bCanEverTick = true;
+
+	TurretsFirepower = 5.f;
+}
+
 void ANPCShip::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (bIsDestroyed) this->Destroy();
+	if (bIsDestroyed && !bDestroyCompleted)
+	{
+		bDestroyCompleted = true;
+		ShipDeath();
+	}
+		
 	else CheckDistanceToPlayer();
 
-	UpdateStats(CurrentShield / MaxShield, CurrentArmor / MaxArmor);
+	UpdateStats(CurrentArmor / MaxArmor);
 }
 
 void ANPCShip::CheckDistanceToPlayer()
@@ -21,7 +33,7 @@ void ANPCShip::CheckDistanceToPlayer()
 
 	if (Distance > 20000)
 	{
-		TargetShip = nullptr;
+		TurretTargetShip = nullptr;
 		ToggleArrows(false);
 	}
 	else
@@ -32,6 +44,6 @@ void ANPCShip::CheckDistanceToPlayer()
 
 void ANPCShip::EngagePlayer()
 {
-	TargetShip = PlayerShipRef;
-	if (IsValid(TargetShip)) Destination = TargetShip->GetActorLocation();
+	TurretTargetShip = PlayerShipRef;
+	if (IsValid(TurretTargetShip)) Destination = TurretTargetShip->GetActorLocation();
 }

@@ -6,14 +6,21 @@
 #include "GameFramework/Pawn.h"
 #include "JamShipBase.generated.h"
 
+class UNiagaraSystem;
+class UNiagaraComponent;
+
 UCLASS()
 class GAMEJAM_API AJamShipBase : public APawn
 {
 	GENERATED_BODY()
 
 public:
-	// Sets default values for this pawn's properties
 	AJamShipBase();
+	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaTime) override;
+
+	UFUNCTION(BlueprintCallable)
+	void ShipApplyDamage(float InDamage);
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -23,20 +30,25 @@ protected:
 	TArray<UStaticMeshComponent*> Turrets;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	AJamShipBase* TargetShip = nullptr;
+	AJamShipBase* TurretTargetShip = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	AJamShipBase* BroadsideTargetShip = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	AJamShipBase* FightersTargetShip = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FVector Destination;
 
-	// Default stats set up for small NPC ship.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float TurretsFirepower = 5.f;
+	float TurretsFirepower = 0.f;
+	float BroadsidesFirepower = 0.f;
 
 	float MaxShield = 0.f;
 	float CurrentShield = 0.f;
 
-	float MaxArmor = 100.f;
-	float CurrentArmor = 100.f;
+	float MaxArmor = 250.f;
+	float CurrentArmor = 250.f;
 
 	float MaxFuel = 100.f;
 	float CurrentFuel = 100.f;
@@ -44,8 +56,11 @@ protected:
 	float MaxSpeed = 500.f;
 	float TurnSpeed = 80.f;
 
+	float TurretRange = 5000.f;
+	float BroadsideRange = 5000.f;
+
 	bool bShieldEnabled = false;
-	bool bShieldDown = false;
+	bool bShieldCooldown = false;
 	bool bIsBoosting = false;
 	bool bIsDestroyed = false;
 
@@ -53,27 +68,41 @@ protected:
 	bool bLauncher = false;
 	bool bFighters = false;
 
-	void FireTurrets();
-
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-
-	UFUNCTION(BlueprintCallable)
-	void ShipApplyDamage(float InDamage);
+	void FireWeapons();
 
 private:
+	UNiagaraSystem* NS_TurretBeam = nullptr;
+	UNiagaraSystem* NS_BroadsidesFire = nullptr;
+
+	UPROPERTY()
+	UNiagaraComponent* TurretOneVFX = nullptr;
+	UPROPERTY()
+	UNiagaraComponent* TurretTwoVFX = nullptr;
+	UPROPERTY()
+	UNiagaraComponent* BroadsidesPortVFX = nullptr;
+	UPROPERTY()
+	UNiagaraComponent* BroadsidesStbdVFX = nullptr;
+
 	bool bIsTurretsAimedAtTarget = false;
 	bool bIsTurretsInRange = false;
 
+	bool bStbdAngleValid = false;
+	bool bPortAngleValid = false;
+	bool bBroadsidesInRange = false;
+
 	float WeaponsTimer = 0.f;
+	float MissileTimer = 0.f;
+
 	float ShieldRegenTimer = 0.f;
 	float ShieldRegenDelay = 0.f;
-
-	float WeaponsRange = 6000.f;
 
 	void MoveToDestination(float InDelta);
 
 	void TurretsTracking(float InDelta);
-	void BroadsidesTracking(AJamShipBase* InTarget);
+	void BroadsidesTracking();
+
+	void LaunchMissile();
+
+	void UpdateVFX();
+	void SpawnWeaponsVFX();
 };

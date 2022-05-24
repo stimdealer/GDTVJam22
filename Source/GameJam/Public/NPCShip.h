@@ -15,16 +15,23 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	AJamShipBase* PlayerShipRef = nullptr;
 
+	ANPCShip();
 	virtual void Tick(float DeltaTime) override;
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Target Arrows")
 	void ToggleArrows(bool IsVisible);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Target Arrows")
-	void UpdateStats(float InShieldPercent, float InArmorPercent);
+	void UpdateStats(float InArmorPercent);
+
+protected:
+	UFUNCTION(BlueprintImplementableEvent, Category = "General")
+	void ShipDeath();
 
 private:
 	void CheckDistanceToPlayer();
 
 	void EngagePlayer();
+
+	bool bDestroyCompleted = false;
 };

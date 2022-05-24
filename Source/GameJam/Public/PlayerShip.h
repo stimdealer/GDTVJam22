@@ -99,7 +99,9 @@ private:
 
 	TArray<FQuestMarker> ActiveQuestMarkers;
 
-	float ScanFrequency = 0.5f;
+	bool bManualTargetSelected = false;
+
+	float ScanFrequency = 0.25f;
 	float ScanTimer = 0.f;
 
 	bool bPhoenixReady = true;
@@ -121,4 +123,6 @@ private:
 
 	void ScanForTargets();
 	void SelectClosestTarget();
+
+	float CalculatePercent(float InCurrent, float InMax);
 };
