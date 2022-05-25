@@ -37,17 +37,18 @@ APlayerShip::APlayerShip()
 	// Initial stats for Tier 4 ship:
 	MaxShield = 500.f;
 	CurrentShield = 500.f;
-	MaxArmor = 500.f;
-	CurrentArmor = 500.f;
+	MaxArmor = 2000.f;
+	CurrentArmor = 2000.f;
 	MaxFuel = 100.f;
 	CurrentFuel = 100.f;
 	MaxSpeed = 1000.f;
 	TurnSpeed = 120.f;
 	bShieldEnabled = true;
 	bBroadsides = true;
+	bLauncher = true;
 
 	TurretsFirepower = 10.f;
-	TurretRange = 7500.f;
+	TurretRange = 5000.f;
 
 	BroadsidesFirepower = 20.f;
 }
@@ -59,6 +60,21 @@ void APlayerShip::Tick(float DeltaTime)
 	CameraAttach->SetWorldLocation(FMath::VInterpTo(CameraAttach->GetComponentLocation(), this->GetActorLocation(), DeltaTime, 5.f));
 	UpdateQuestMarkers();
 
+	if (bIsDestroyed && bPhoenixReady)
+	{
+		SendMessageToUI(FText::FromString(TEXT("Phoenix systems activated. Ship has been reconstituted with minimal abilities.")));
+		UpgradeShip(true);
+		PhoenixTimer = 0.f;
+		bPhoenixReady = false;
+		bIsDestroyed = false;
+	}
+	else if (bIsDestroyed && !bDestructionComplete)
+	{
+		bDestructionComplete = true;
+		SendMessageToUI(FText::FromString(TEXT("Your ship was destroyed permanently.")), true);
+		ShipPermanentDeath();
+	}
+
 	if (!bPhoenixReady) PhoenixTimer += DeltaTime;
 	if (PhoenixTimer > 60.f)
 	{
@@ -68,6 +84,9 @@ void APlayerShip::Tick(float DeltaTime)
 	ScanTimer += DeltaTime;
 	if (ScanTimer > ScanFrequency)
 	{
+		//GEngine->AddOnScreenDebugMessage(-1, 0.25f, FColor::Blue, FString::SanitizeFloat(CurrentShield));
+		//GEngine->AddOnScreenDebugMessage(-1, 0.25f, FColor::Green, FString::SanitizeFloat(CurrentArmor));
+
 		SendArmorFuelToUI(
 			CalculatePercent(CurrentShield, MaxShield),
 			CalculatePercent(CurrentArmor, MaxArmor),
@@ -75,35 +94,20 @@ void APlayerShip::Tick(float DeltaTime)
 			CalculatePercent(CurrentOre, MaxOre),
 			CalculatePercent(PhoenixTimer, 60.f)
 		);
+		SendIconsToUI(bBroadsides, bLauncher, bFighters, bMissileReady, bFightersReady);
 		ScanTimer = 0.f;
 
-		if (bIsDestroyed && bPhoenixReady)
-		{
-			SendMessageToUI(FText::FromString(TEXT("Phoenix systems activated. Ship has been reconstituted with minimal abilities.")));
-			UpgradeShip(true);
-			PhoenixTimer = 0.f;
-			bPhoenixReady = false;
-			bIsDestroyed = false;
-		}
-		else if (bIsDestroyed)
-		{
-			SendMessageToUI(FText::FromString(TEXT("Your ship was destroyed permanently.")));
-			ShipPermanentDeath();
-		}
-		else
-		{
-			ScanForTargets();
+		ScanForTargets();
 
-			if (IsValid(ClosestTarget))
+		if (IsValid(ClosestNPCShipTarget))
+		{
+			AJamShipBase* Ship = Cast<AJamShipBase>(ClosestNPCShipTarget);
+			if (IsValid(Ship))
 			{
-				AJamShipBase* Ship = Cast<AJamShipBase>(ClosestTarget);
-				if (IsValid(Ship))
-				{
-					TurretTargetShip = Ship;
-					ClosestTarget->ToggleArrows(true);
-				}
+				TurretTargetShip = Ship;
+				ClosestNPCShipTarget->ToggleArrows(true);
 			}
-		}			
+		}	
 	}
 }
 
@@ -117,8 +121,6 @@ void APlayerShip::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 		PlayerInputComponent->BindAction("SpeedBoost", IE_Pressed, this, &APlayerShip::InputStartSpeedBoost);
 		PlayerInputComponent->BindAction("SpeedBoost", IE_Released, this, &APlayerShip::InputStopSpeedBoost);
 		PlayerInputComponent->BindAction("TabTarget", IE_Pressed, this, &APlayerShip::SelectClosestTarget);
-		PlayerInputComponent->BindAction("FireMissile", IE_Pressed, this, &APlayerShip::InputFireMissile);
-		PlayerInputComponent->BindAction("LaunchFighters", IE_Pressed, this, &APlayerShip::InputLaunchFighters);
 
 		PlayerInputComponent->BindAction("CameraZoomIn", IE_Pressed, this, &APlayerShip::InputCameraZoomIn);
 		PlayerInputComponent->BindAction("CameraZoomOut", IE_Pressed, this, &APlayerShip::InputCameraZoomOut);
@@ -166,8 +168,8 @@ void APlayerShip::UpgradeShip(bool IsTierOneReset)
 	{
 	case 1:
 		MaxShield = 0.f;
-		MaxArmor = 100.f;
-		MaxSpeed = 500.f;
+		MaxArmor = 200.f;
+		MaxSpeed = 750.f;
 		TurnSpeed = 75.f;
 		bBroadsides = false;
 		bLauncher = false;
@@ -177,8 +179,8 @@ void APlayerShip::UpgradeShip(bool IsTierOneReset)
 		break;
 	case 2:
 		MaxShield = 0.f;
-		MaxArmor = 150.f;
-		MaxSpeed = 650.f;
+		MaxArmor = 300.f;
+		MaxSpeed = 875.f;
 		TurnSpeed = 90.f;
 		bBroadsides = true;
 		bLauncher = false;
@@ -187,9 +189,9 @@ void APlayerShip::UpgradeShip(bool IsTierOneReset)
 		MaxOre = 150;
 		break;
 	case 3:
-		MaxShield = 100.f;
-		MaxArmor = 150.f;
-		MaxSpeed = 800.f;
+		MaxShield = 150.f;
+		MaxArmor = 300.f;
+		MaxSpeed = 1000.f;
 		TurnSpeed = 105.f;
 		bBroadsides = true;
 		bLauncher = true;
@@ -198,9 +200,9 @@ void APlayerShip::UpgradeShip(bool IsTierOneReset)
 		MaxOre = 200;
 		break;
 	case 4:
-		MaxShield = 200.f;
-		MaxArmor = 200.f;
-		MaxSpeed = 1000.f;
+		MaxShield = 300.f;
+		MaxArmor = 400.f;
+		MaxSpeed = 1200.f;
 		TurnSpeed = 120.f;
 		bBroadsides = true;
 		bLauncher = true;
@@ -273,16 +275,6 @@ void APlayerShip::InputStopSpeedBoost()
 	bIsBoosting = false;
 }
 
-void APlayerShip::InputFireMissile()
-{
-	SendMessageToUI(FText::FromString(TEXT("Launching a missile at current target.")));
-}
-
-void APlayerShip::InputLaunchFighters()
-{
-	SendMessageToUI(FText::FromString(TEXT("Deploying fighters to defend the ship!")));
-}
-
 void APlayerShip::ScanForTargets()
 {
 	AllTargets.Empty();
@@ -301,33 +293,37 @@ void APlayerShip::ScanForTargets()
 
 void APlayerShip::SelectClosestTarget()
 {
-	if (IsValid(ClosestTarget) && !bManualTargetSelected) ClosestTarget->ToggleArrows(false);
+	if (IsValid(ClosestNPCShipTarget) && !bManualTargetSelected) ClosestNPCShipTarget->ToggleArrows(false);
 
-	ANPCShip* NewClosestTarget = nullptr;
+	ANPCShip* NewClosestNPCShip = nullptr;
 	float ShortestDistance = 100000.f;
-	for (ANPCShip* NPCShip : AllTargets)
+	for (AJamShipBase* Ship : AllTargets)
 	{
+		ANPCShip* NPCShip = Cast<ANPCShip>(Ship);
 		if (IsValid(NPCShip))
 		{
 			float Distance = FVector::Distance(this->GetActorLocation(), NPCShip->GetActorLocation());
 			if (Distance < ShortestDistance)
 			{
 				ShortestDistance = Distance;
-				NewClosestTarget = NPCShip;
+				NewClosestNPCShip = NPCShip;
 			}
 		}
 	}
-	if (!IsValid(ClosestTarget) && !bManualTargetSelected) ClosestTarget = NewClosestTarget;
-	else ClosestTarget->ToggleArrows(true);
+
+	if (!IsValid(ClosestNPCShipTarget) && !bManualTargetSelected) ClosestNPCShipTarget = NewClosestNPCShip;
+	else ClosestNPCShipTarget->ToggleArrows(true);
 	
-	BroadsideTargetShip = NewClosestTarget;
+	BroadsideTargetShip = NewClosestNPCShip;
 }
 
-void APlayerShip::ManualSelectTarget(ANPCShip* InNewTarget)
+void APlayerShip::ManualSelectTarget(AJamShipBase* InNewTarget)
 {
-	if (IsValid(ClosestTarget)) ClosestTarget->ToggleArrows(false);
-	ClosestTarget = InNewTarget;
-	if (IsValid(ClosestTarget)) ClosestTarget->ToggleArrows(true);
+	if (IsValid(ClosestNPCShipTarget)) ClosestNPCShipTarget->ToggleArrows(false);
+
+	auto NewNPCTarget = Cast<ANPCShip>(InNewTarget);
+	if (IsValid(NewNPCTarget)) ClosestNPCShipTarget = NewNPCTarget;
+	if (IsValid(ClosestNPCShipTarget)) ClosestNPCShipTarget->ToggleArrows(true);
 }
 
 float APlayerShip::CalculatePercent(float InCurrent, float InMax)

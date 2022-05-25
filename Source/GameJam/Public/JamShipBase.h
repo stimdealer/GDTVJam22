@@ -53,11 +53,11 @@ protected:
 	float MaxFuel = 100.f;
 	float CurrentFuel = 100.f;
 
-	float MaxSpeed = 500.f;
-	float TurnSpeed = 80.f;
+	float MaxSpeed = 1000.f;
+	float TurnSpeed = 100.f;
 
 	float TurretRange = 5000.f;
-	float BroadsideRange = 5000.f;
+	float BroadsideRange = 7500.f;
 
 	bool bShieldEnabled = false;
 	bool bShieldCooldown = false;
@@ -67,12 +67,17 @@ protected:
 	bool bBroadsides = false;
 	bool bLauncher = false;
 	bool bFighters = false;
+	bool bMissileReady = false;
+	bool bFightersReady = false;
+
+	bool bDestructionComplete = false;
 
 	void FireWeapons();
 
 private:
 	UNiagaraSystem* NS_TurretBeam = nullptr;
 	UNiagaraSystem* NS_BroadsidesFire = nullptr;
+	UNiagaraSystem* NS_ThrusterTrail = nullptr;
 
 	UPROPERTY()
 	UNiagaraComponent* TurretOneVFX = nullptr;
@@ -82,6 +87,19 @@ private:
 	UNiagaraComponent* BroadsidesPortVFX = nullptr;
 	UPROPERTY()
 	UNiagaraComponent* BroadsidesStbdVFX = nullptr;
+	UPROPERTY()
+	UNiagaraComponent* BoostThrusterOne = nullptr;
+	UPROPERTY()
+	UNiagaraComponent* BoostThrusterTwo = nullptr;
+	UPROPERTY()
+	UNiagaraComponent* BoostThrusterThree = nullptr;
+	UPROPERTY()
+	UNiagaraComponent* BoostThrusterFour = nullptr;
+
+	FTimerHandle ShieldCooldownHandle;
+	FTimerDelegate ShieldCooldownDelegate;
+	UFUNCTION()
+	void OnShieldCooldownComplete();
 
 	bool bIsTurretsAimedAtTarget = false;
 	bool bIsTurretsInRange = false;
@@ -100,8 +118,6 @@ private:
 
 	void TurretsTracking(float InDelta);
 	void BroadsidesTracking();
-
-	void LaunchMissile();
 
 	void UpdateVFX();
 	void SpawnWeaponsVFX();

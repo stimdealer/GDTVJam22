@@ -47,7 +47,7 @@ public:
 	void ApplyLootableBonus(int32 InType, int32 InAmount);
 
 	UFUNCTION(BlueprintCallable)
-	void ManualSelectTarget(ANPCShip* InNewTarget);
+	void ManualSelectTarget(AJamShipBase* InNewTarget);
 
 	UFUNCTION(BlueprintCallable)
 	void UpgradeShip(bool IsTierOneReset = false);
@@ -66,9 +66,11 @@ protected:
 
 	UStaticMesh* TurretLaser = nullptr;
 
-
 	UFUNCTION(BlueprintImplementableEvent, Category = "UI Functions")
 	void SendArmorFuelToUI(float InShieldPercent, float InArmorPercent, float InFuelPercent, float InOrePercent, float InPhoenixPercent);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "UI Functions")
+	void SendIconsToUI(bool InBroadsides, bool InMissiles, bool InFighters, bool InMissileReady, bool InFightersReady);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "UI Functions")
 	void SendMessageToUI(const FText& InMessage, bool DisplayImmediately = false);
@@ -89,8 +91,8 @@ protected:
 	void PhoenixExplosion();
 
 private:
-	TArray<ANPCShip*> AllTargets;
-	ANPCShip* ClosestTarget = nullptr;
+	TArray<AJamShipBase*> AllTargets;
+	ANPCShip* ClosestNPCShipTarget = nullptr;
 
 	USceneComponent* CameraAttach;
 	USceneComponent* CameraAzimuth;
@@ -124,5 +126,6 @@ private:
 	void ScanForTargets();
 	void SelectClosestTarget();
 
+	// Misc functions
 	float CalculatePercent(float InCurrent, float InMax);
 };

@@ -14,9 +14,9 @@ void ANPCShip::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (bIsDestroyed && !bDestroyCompleted)
+	if (bIsDestroyed && !bDestructionComplete)
 	{
-		bDestroyCompleted = true;
+		bDestructionComplete = true;
 		ShipDeath();
 	}
 		

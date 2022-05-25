@@ -20,16 +20,20 @@ AJamShipBase::AJamShipBase()
 	if (!ensure(NS_TurretBeam != nullptr)) return;
 	NS_BroadsidesFire = LoadObject<UNiagaraSystem>(nullptr, TEXT("NiagaraSystem'/Game/VFX/NS_BroadsidesFire.NS_BroadsidesFire'"), nullptr, LOAD_None, nullptr);
 	if (!ensure(NS_BroadsidesFire != nullptr)) return;
+	NS_ThrusterTrail = LoadObject<UNiagaraSystem>(nullptr, TEXT("NiagaraSystem'/Game/VFX/NS_ThrusterTrail.NS_ThrusterTrail'"), nullptr, LOAD_None, nullptr);
+	if (!ensure(NS_ThrusterTrail != nullptr)) return;
 
 	PhysicsRoot = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Physics Root"));
 	PhysicsRoot->SetRelativeRotation(FRotator(0.0, -90.0, 0.0));
 	this->RootComponent = PhysicsRoot;
-	PhysicsRoot->SetSimulatePhysics(true);
+	PhysicsRoot->SetSimulatePhysics(false);
 }
 
 void AJamShipBase::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	ShieldCooldownDelegate.BindUFunction(this, FName("OnShieldCooldownComplete"));
 
 	SpawnWeaponsVFX();
 }
@@ -39,22 +43,18 @@ void AJamShipBase::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	UpdateVFX();
+
+	if (bIsDestroyed) return;
+
 	MoveToDestination(DeltaTime);
 	TurretsTracking(DeltaTime);
 	BroadsidesTracking();
-
-	UpdateVFX();
 
 	if (bIsBoosting) CurrentFuel -= DeltaTime;
 
 	if (bShieldCooldown) ShieldRegenDelay += DeltaTime;
 	else ShieldRegenTimer += DeltaTime;
-
-	if (ShieldRegenDelay > 10.f)
-	{
-		ShieldRegenDelay = 0.f;
-		bShieldCooldown = false;
-	}
 
 	if (!bShieldCooldown && ShieldRegenTimer > 2.5f)
 	{
@@ -69,19 +69,22 @@ void AJamShipBase::Tick(float DeltaTime)
 		WeaponsTimer = 0.f;
 		FireWeapons();
 	}
-
-	/*
-	if (bLauncher)
-	{
-		MissileTimer += DeltaTime;
-	}
-	*/
 }
 
 void AJamShipBase::FireWeapons()
 {
-	if (IsValid(TurretTargetShip) && bIsTurretsInRange && bIsTurretsAimedAtTarget) TurretTargetShip->ShipApplyDamage(TurretsFirepower);
-	if (IsValid(BroadsideTargetShip) && bBroadsidesInRange)	if (bStbdAngleValid || bPortAngleValid) BroadsideTargetShip->ShipApplyDamage(BroadsidesFirepower);
+	if (IsValid(TurretTargetShip) && bIsTurretsInRange && bIsTurretsAimedAtTarget)
+	{
+		TurretTargetShip->ShipApplyDamage(TurretsFirepower);
+	}
+
+	if (IsValid(BroadsideTargetShip) && bBroadsidesInRange)
+	{
+		if (bStbdAngleValid || bPortAngleValid)
+		{
+			BroadsideTargetShip->ShipApplyDamage(BroadsidesFirepower);
+		}
+	}		
 }
 
 void AJamShipBase::MoveToDestination(float InDelta)
@@ -94,27 +97,39 @@ void AJamShipBase::MoveToDestination(float InDelta)
 	float AngleDistance = FMath::RadiansToDegrees(acosf(FVector::DotProduct(this->GetActorForwardVector(), Heading)));
 
 	UPrimitiveComponent* Prim = Cast<UPrimitiveComponent>(PhysicsRoot);
-	if (IsValid(Prim))
+
+	if (IsValid(Prim) && Prim->IsSimulatingPhysics())
 	{
 		// Apply rotation
-		if (Distance > 500.f) Prim->SetWorldRotation(FMath::RInterpTo(Prim->GetComponentRotation(), Heading.Rotation(), InDelta, float(TurnSpeed / Prim->GetMass())));
+		Prim->SetWorldRotation(FMath::RInterpTo(Prim->GetComponentRotation(), Heading.Rotation(), InDelta, float(TurnSpeed / Prim->GetMass())));
 
 		float Momentum;
 		FVector Direction;
 		Prim->GetComponentVelocity().ToDirectionAndLength(Direction, Momentum);
 
-		//float AngleToDestination = FMath::RadiansToDegrees(acosf(FVector::DotProduct(Direction, Heading)));
-		//GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::White, *FString(TEXT("Velocity to destination angle (drift) difference:") + FString::SanitizeFloat(AngleToDestination)));
-
 		// Apply forward thrust
 		FVector Force = FVector(0.0);
 		float NewMaxSpeed;
-		if (bIsBoosting && CurrentFuel > 0.f) NewMaxSpeed = MaxSpeed * 2.f;
-		else NewMaxSpeed = MaxSpeed;
+		if (bIsBoosting && CurrentFuel > 0.f)
+		{
+			NewMaxSpeed = MaxSpeed * 2.f;
+			if (BoostThrusterOne) BoostThrusterOne->Activate();
+			if (BoostThrusterTwo) BoostThrusterTwo->Activate();
+			if (BoostThrusterThree) BoostThrusterThree->Activate();
+			if (BoostThrusterFour) BoostThrusterFour->Activate();
+		}
+		else
+		{
+			NewMaxSpeed = MaxSpeed;
+			if (BoostThrusterOne) BoostThrusterOne->Deactivate();
+			if (BoostThrusterTwo) BoostThrusterTwo->Deactivate();
+			if (BoostThrusterThree) BoostThrusterThree->Deactivate();
+			if (BoostThrusterFour) BoostThrusterFour->Deactivate();
+		}			
 
 		float Thrust = MaxSpeed * 100.f;
 
-		if (Distance > 500.0 && Momentum < NewMaxSpeed)
+		if (Distance > 1000.0 && Momentum < NewMaxSpeed)
 		{
 			if (bIsBoosting) Thrust = Thrust * 2.f;
 			//else if (Distance < 1000.0) Thrust = 50000.f;
@@ -123,10 +138,13 @@ void AJamShipBase::MoveToDestination(float InDelta)
 		}
 		else
 		{
+			Force = Prim->GetComponentVelocity() * -2;
+			/*
 			if (Prim->GetComponentVelocity().X > 5.0 || Prim->GetComponentVelocity().Y > 5.0 || Prim->GetComponentVelocity().Z > 5.0)
 			{
 				Force = Prim->GetComponentVelocity() * -2;
 			}
+			*/
 		}
 
 		Force = FVector(
@@ -183,15 +201,14 @@ void AJamShipBase::BroadsidesTracking()
 	bBroadsidesInRange = FVector::Distance(BroadsideTargetShip->GetActorLocation(), this->GetActorLocation()) < BroadsideRange;
 }
 
-void AJamShipBase::LaunchMissile()
-{
-
-}
-
 void AJamShipBase::ShipApplyDamage(float InDamage)
 {
 	bShieldCooldown = true;
-	ShieldRegenTimer = 0.f;
+
+	GEngine->AddOnScreenDebugMessage(-1, 0.25f, FColor::White, FString::SanitizeFloat(InDamage));
+
+	GetWorldTimerManager().ClearTimer(ShieldCooldownHandle);
+	GetWorldTimerManager().SetTimer(ShieldCooldownHandle, ShieldCooldownDelegate, 10.f, false);
 
 	float ArmorDamage = InDamage;
 	if (bShieldEnabled)
@@ -207,6 +224,12 @@ void AJamShipBase::ShipApplyDamage(float InDamage)
 
 	CurrentArmor -= ArmorDamage;
 	if (CurrentArmor <= 0) bIsDestroyed = true;
+}
+
+void AJamShipBase::OnShieldCooldownComplete()
+{
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Cyan, TEXT("OnShieldCooldownComplete called!"));
+	bShieldCooldown = false;
 }
 
 void AJamShipBase::UpdateVFX()
@@ -229,10 +252,10 @@ void AJamShipBase::UpdateVFX()
 		
 	if (NS_BroadsidesFire && BroadsidesStbdVFX && BroadsidesPortVFX)
 	{
-		if (bBroadsidesInRange && bStbdAngleValid) BroadsidesStbdVFX->Activate();
+		if (IsValid(BroadsideTargetShip) && bBroadsidesInRange && bStbdAngleValid) BroadsidesStbdVFX->Activate();
 		else BroadsidesStbdVFX->Deactivate();
 
-		if (bBroadsidesInRange && bPortAngleValid) BroadsidesPortVFX->Activate();
+		if (IsValid(BroadsideTargetShip) && bBroadsidesInRange && bPortAngleValid) BroadsidesPortVFX->Activate();
 		else BroadsidesPortVFX->Deactivate();
 	}
 }
@@ -241,6 +264,7 @@ void AJamShipBase::SpawnWeaponsVFX()
 {
 	if (!NS_TurretBeam) return;
 	if (!NS_BroadsidesFire) return;
+	if (!NS_ThrusterTrail) return;
 
 	if (PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Turret_1")))
 	{
@@ -251,7 +275,7 @@ void AJamShipBase::SpawnWeaponsVFX()
 			FVector(0.0),
 			FRotator(0.0),
 			EAttachLocation::KeepRelativeOffset,
-			true,
+			false,
 			false
 		);
 	}
@@ -265,7 +289,7 @@ void AJamShipBase::SpawnWeaponsVFX()
 			FVector(0.0),
 			FRotator(0.0),
 			EAttachLocation::KeepRelativeOffset,
-			true,
+			false,
 			false
 		);
 	}
@@ -278,8 +302,8 @@ void AJamShipBase::SpawnWeaponsVFX()
 			FName("Broadsides_Port"),
 			FVector(0.0),
 			FRotator(0.0),
-			EAttachLocation::KeepRelativeOffset,
-			true,
+			EAttachLocation::SnapToTarget,
+			false,
 			false
 		);
 	}
@@ -292,9 +316,73 @@ void AJamShipBase::SpawnWeaponsVFX()
 			FName("Broadsides_Stbd"),
 			FVector(0.0),
 			FRotator(0.0),
-			EAttachLocation::KeepRelativeOffset,
-			true,
+			EAttachLocation::SnapToTarget,
+			false,
 			false
 		);
+	}
+
+	if (PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Boost_1")))
+	{
+		BoostThrusterOne = UNiagaraFunctionLibrary::SpawnSystemAttached(
+			NS_ThrusterTrail,
+			PhysicsRoot,
+			FName("Boost_1"),
+			FVector(0.0),
+			FRotator(0.0),
+			EAttachLocation::KeepRelativeOffset,
+			false,
+			false
+		);
+		BoostThrusterOne->SetNiagaraVariableFloat(TEXT("Width"), 24.f);
+		BoostThrusterOne->SetNiagaraVariableLinearColor(TEXT("Color"), FLinearColor(100.f, 50.f, 0.f, 1.f));
+	}
+
+	if (PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Boost_2")))
+	{
+		BoostThrusterTwo = UNiagaraFunctionLibrary::SpawnSystemAttached(
+			NS_ThrusterTrail,
+			PhysicsRoot,
+			FName("Boost_2"),
+			FVector(0.0),
+			FRotator(0.0),
+			EAttachLocation::KeepRelativeOffset,
+			false,
+			false
+		);
+		BoostThrusterTwo->SetNiagaraVariableFloat(TEXT("Width"), 24.f);
+		BoostThrusterTwo->SetNiagaraVariableLinearColor(TEXT("Color"), FLinearColor(100.f, 50.f, 0.f, 1.f));
+	}
+
+	if (PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Boost_3")))
+	{
+		BoostThrusterThree = UNiagaraFunctionLibrary::SpawnSystemAttached(
+			NS_ThrusterTrail,
+			PhysicsRoot,
+			FName("Boost_3"),
+			FVector(0.0),
+			FRotator(0.0),
+			EAttachLocation::KeepRelativeOffset,
+			false,
+			false
+		);
+		BoostThrusterThree->SetNiagaraVariableFloat(TEXT("Width"), 24.f);
+		BoostThrusterThree->SetNiagaraVariableLinearColor(TEXT("Color"), FLinearColor(100.f, 50.f, 0.f, 1.f));
+	}
+
+	if (PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Boost_4")))
+	{
+		BoostThrusterFour = UNiagaraFunctionLibrary::SpawnSystemAttached(
+			NS_ThrusterTrail,
+			PhysicsRoot,
+			FName("Boost_4"),
+			FVector(0.0),
+			FRotator(0.0),
+			EAttachLocation::KeepRelativeOffset,
+			false,
+			false
+		);
+		BoostThrusterFour->SetNiagaraVariableFloat(TEXT("Width"), 24.f);
+		BoostThrusterFour->SetNiagaraVariableLinearColor(TEXT("Color"), FLinearColor(100.f, 50.f, 0.f, 1.f));
 	}
 }
