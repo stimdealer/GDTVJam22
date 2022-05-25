@@ -72,6 +72,8 @@ protected:
 
 	bool bDestructionComplete = false;
 
+	FVector CameraLead;
+
 	void FireWeapons();
 
 private:

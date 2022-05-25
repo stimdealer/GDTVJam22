@@ -153,6 +153,10 @@ void AJamShipBase::MoveToDestination(float InDelta)
 			FMath::Clamp(Force.Z, -NewMaxSpeed, NewMaxSpeed)
 		);
 
+		CameraLead = (Prim->GetComponentVelocity() * 0.5f) + this->GetActorLocation();
+
+		DrawDebugLine(GetWorld(), this->GetActorLocation(), CameraLead, FColor::White, false, 0.1f, 0.f, 10.f);
+
 		Prim->AddForce(Force, NAME_None, true);
 	}
 }
