@@ -82,8 +82,6 @@ void ATrackingMissile::MoveTowardsTarget(float InDelta)
 	FVector Translate = FVector(Direction * MissileSpeed * InDelta);
 	this->AddActorWorldOffset(Translate);
 
-	DrawDebugLine(GetWorld(), this->GetActorLocation(), (Direction * 5000.f) + this->GetActorLocation(), FColor::Yellow, false, 0.1f, 0.f, 10.f);
-
 	// Thruster VFX
 }
 

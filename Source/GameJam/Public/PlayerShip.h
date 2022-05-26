@@ -55,6 +55,12 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void AddQuest(const FString& InQuestName, FVector InLocation);
 
+	UFUNCTION(BlueprintCallable)
+	void UpdateQuest(const FString& InQuestName, bool InCompleted);
+
+	UFUNCTION(BlueprintCallable)
+	bool GetFightersStatus();
+
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	USphereComponent* TargetField;

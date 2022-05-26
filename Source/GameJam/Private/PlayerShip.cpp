@@ -57,7 +57,7 @@ void APlayerShip::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	CameraAttach->SetWorldLocation(FMath::VInterpTo(CameraAttach->GetComponentLocation(), CameraLead, DeltaTime, 5.f));
+	CameraAttach->SetWorldLocation(FMath::VInterpTo(CameraAttach->GetComponentLocation(), CameraLead, DeltaTime, 3.f));
 	UpdateQuestMarkers();
 
 	if (bIsDestroyed && bPhoenixReady)
@@ -115,7 +115,7 @@ void APlayerShip::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-	if (PlayerInputComponent) // If this fails, change back to the InputComponent variable
+	if (PlayerInputComponent)
 	{
 		// Action bindings
 		PlayerInputComponent->BindAction("SpeedBoost", IE_Pressed, this, &APlayerShip::InputStartSpeedBoost);
@@ -232,6 +232,14 @@ void APlayerShip::AddQuest(const FString& InQuestName, FVector InLocation)
 	SendMessageToUI(FText::FromString(NewQuestString));
 }
 
+void APlayerShip::UpdateQuest(const FString& InQuestName, bool InCompleted)
+{
+	for (FQuestMarker& Marker : ActiveQuestMarkers)
+	{
+		if (Marker.MarkerTitle == InQuestName) Marker.bCompleted = InCompleted;
+	}
+}
+
 void APlayerShip::UpdateQuestMarkers()
 {
 	APlayerController* PC = GetWorld()->GetFirstPlayerController();
@@ -257,12 +265,12 @@ void APlayerShip::UpdateQuestMarkers()
 
 void APlayerShip::InputCameraZoomIn()
 {
-	if (TopDownCamera->GetRelativeLocation().X < -2000) TopDownCamera->AddLocalOffset(FVector(500.f, 0.f, 0.f));
+	if (TopDownCamera->GetRelativeLocation().X < -4000) TopDownCamera->AddLocalOffset(FVector(500.f, 0.f, 0.f));
 }
 
 void APlayerShip::InputCameraZoomOut()
 {
-	if (TopDownCamera->GetRelativeLocation().X > -10000) TopDownCamera->AddLocalOffset(FVector(-500.f, 0.f, 0.f));
+	if (TopDownCamera->GetRelativeLocation().X > -12000) TopDownCamera->AddLocalOffset(FVector(-500.f, 0.f, 0.f));
 }
 
 void APlayerShip::InputStartSpeedBoost()
@@ -330,4 +338,9 @@ float APlayerShip::CalculatePercent(float InCurrent, float InMax)
 {
 	if (FMath::IsNearlyZero(InCurrent, 0.001)) return 0.f;
 	else return InCurrent / InMax;
+}
+
+bool APlayerShip::GetFightersStatus()
+{
+	return bFighters;
 }
