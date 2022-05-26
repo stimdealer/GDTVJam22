@@ -41,6 +41,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FVector Destination;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool bPhoenixInProgress = false;
+
 	float TurretsFirepower = 0.f;
 	float BroadsidesFirepower = 0.f;
 

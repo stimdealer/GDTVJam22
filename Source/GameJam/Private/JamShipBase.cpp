@@ -93,6 +93,7 @@ void AJamShipBase::FireWeapons()
 void AJamShipBase::MoveToDestination(float InDelta)
 {
 	if (!IsValid(PhysicsRoot)) return;
+	if (bPhoenixInProgress) return;
 
 	FVector Heading = FVector(Destination - this->GetActorLocation()).GetSafeNormal();
 
@@ -207,6 +208,12 @@ void AJamShipBase::BroadsidesTracking()
 
 void AJamShipBase::ShipApplyDamage(float InDamage)
 {
+	if (bPhoenixInProgress)
+	{
+		SFXImpactDamage(true);
+		return;
+	}
+
 	bShieldCooldown = true;
 
 	GEngine->AddOnScreenDebugMessage(-1, 0.25f, FColor::White, FString::SanitizeFloat(InDamage));
@@ -239,7 +246,6 @@ void AJamShipBase::ShipApplyDamage(float InDamage)
 
 void AJamShipBase::OnShieldCooldownComplete()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Cyan, TEXT("OnShieldCooldownComplete called!"));
 	bShieldCooldown = false;
 }
 
