@@ -34,8 +34,6 @@ void AJamShipBase::BeginPlay()
 	Super::BeginPlay();
 	
 	ShieldCooldownDelegate.BindUFunction(this, FName("OnShieldCooldownComplete"));
-
-	SpawnWeaponsVFX();
 }
 
 // Called every frame
@@ -76,15 +74,20 @@ void AJamShipBase::FireWeapons()
 	if (IsValid(TurretTargetShip) && bIsTurretsInRange && bIsTurretsAimedAtTarget)
 	{
 		TurretTargetShip->ShipApplyDamage(TurretsFirepower);
+		SFXTurretsFiring(true);
 	}
+	else SFXTurretsFiring(false);
 
 	if (IsValid(BroadsideTargetShip) && bBroadsidesInRange)
 	{
 		if (bStbdAngleValid || bPortAngleValid)
 		{
 			BroadsideTargetShip->ShipApplyDamage(BroadsidesFirepower);
+			SFXBroadsidesFiring(true);
 		}
-	}		
+		else SFXBroadsidesFiring(false);
+	}
+	else SFXBroadsidesFiring(false);
 }
 
 void AJamShipBase::MoveToDestination(float InDelta)
@@ -112,6 +115,7 @@ void AJamShipBase::MoveToDestination(float InDelta)
 		float NewMaxSpeed;
 		if (bIsBoosting && CurrentFuel > 0.f)
 		{
+			SFXThruster(true);
 			NewMaxSpeed = MaxSpeed * 2.f;
 			if (BoostThrusterOne) BoostThrusterOne->Activate();
 			if (BoostThrusterTwo) BoostThrusterTwo->Activate();
@@ -120,6 +124,7 @@ void AJamShipBase::MoveToDestination(float InDelta)
 		}
 		else
 		{
+			SFXThruster(false);
 			NewMaxSpeed = MaxSpeed;
 			if (BoostThrusterOne) BoostThrusterOne->Deactivate();
 			if (BoostThrusterTwo) BoostThrusterTwo->Deactivate();
@@ -179,15 +184,12 @@ void AJamShipBase::TurretsTracking(float InDelta)
 				bIsTurretsAimedAtTarget = TurretAngleToTarget < 30.f;
 
 				bIsTurretsInRange = FVector::Distance(TurretTargetShip->GetActorLocation(), this->GetActorLocation()) < TurretRange;
-
-				// Debug lines for testing
-				//if (bIsTurretsAimedAtTarget && bIsTurretsInRange) DrawDebugLine(GetWorld(), Turret->GetSocketLocation(TEXT("Fire")), TargetShip->GetActorLocation(), FColor::Green, false, 0.1f, 0.f, 10.f);
-				//else DrawDebugLine(GetWorld(), Turret->GetSocketLocation(TEXT("Fire")), TargetShip->GetActorLocation(), FColor::Red, false, 0.1f, 0.f, 10.f);
 			}
 
 			FRotator NewRotation = FMath::RInterpConstantTo(Turret->GetRelativeRotation(), FRotator(0.0, NewYaw, 0.0), InDelta, 100.f);
 			Turret->SetRelativeRotation(NewRotation);
 		}
+		else GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Yellow, TEXT("Fire socket not found"));
 	}
 }
 
@@ -219,10 +221,17 @@ void AJamShipBase::ShipApplyDamage(float InDamage)
 		CurrentShield -= InDamage;
 		if (CurrentShield <= 0)
 		{
+			CurrentShield = 0;
 			ArmorDamage = FMath::Abs(CurrentShieldOld - InDamage);
+			SFXImpactDamage(false);
 		}
-		else ArmorDamage = 0;
+		else
+		{
+			ArmorDamage = 0;
+			SFXImpactDamage(true);
+		}
 	}
+	else SFXImpactDamage(false);
 
 	CurrentArmor -= ArmorDamage;
 	if (CurrentArmor <= 0) bIsDestroyed = true;
@@ -236,20 +245,31 @@ void AJamShipBase::OnShieldCooldownComplete()
 
 void AJamShipBase::UpdateVFX()
 {
-	if (NS_TurretBeam && TurretOneVFX && TurretTwoVFX)
+	if (!NS_TurretBeam) return;
+
+	if (bIsTurretsAimedAtTarget && bIsTurretsInRange && IsValid(TurretTargetShip))
 	{
-		if (bIsTurretsAimedAtTarget && bIsTurretsInRange && IsValid(TurretTargetShip))
+		if (TurretOneVFX && TurretTwoVFX)
 		{
 			TurretOneVFX->SetNiagaraVariableVec3(TEXT("TargetLocation"), TurretTargetShip->GetActorLocation());
 			TurretOneVFX->Activate();
 			TurretTwoVFX->SetNiagaraVariableVec3(TEXT("TargetLocation"), TurretTargetShip->GetActorLocation());
 			TurretTwoVFX->Activate();
 		}
-		else
+		else if (TurretHunterVFX)
+		{
+			TurretHunterVFX->SetNiagaraVariableVec3(TEXT("TargetLocation"), TurretTargetShip->GetActorLocation());
+			TurretHunterVFX->Activate();
+		}
+	}
+	else
+	{
+		if (TurretOneVFX && TurretTwoVFX)
 		{
 			TurretOneVFX->Deactivate();
 			TurretTwoVFX->Deactivate();
 		}
+		else if (TurretHunterVFX) TurretHunterVFX->Deactivate();
 	}
 		
 	if (NS_BroadsidesFire && BroadsidesStbdVFX && BroadsidesPortVFX)
@@ -267,6 +287,21 @@ void AJamShipBase::SpawnWeaponsVFX()
 	if (!NS_TurretBeam) return;
 	if (!NS_BroadsidesFire) return;
 	if (!NS_ThrusterTrail) return;
+
+	if (PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Turret_Hunter")))
+	{
+		TurretHunterVFX = UNiagaraFunctionLibrary::SpawnSystemAttached(
+			NS_TurretBeam,
+			PhysicsRoot,
+			FName("Turret_Hunter"),
+			FVector(0.0),
+			FRotator(0.0),
+			EAttachLocation::KeepRelativeOffset,
+			false,
+			false
+		);
+		TurretHunterVFX->SetNiagaraVariableLinearColor(TEXT("BeamColor"), FLinearColor(100.f, 0.f, 0.f, 1.f));
+	}
 
 	if (PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Turret_1")))
 	{

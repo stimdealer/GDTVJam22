@@ -24,6 +24,9 @@ struct GAMEJAM_API FQuestMarker
 	FVector Location;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	int32 IconType = 0;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	bool bReached;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
@@ -37,7 +40,7 @@ class GAMEJAM_API APlayerShip : public AJamShipBase
 
 public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	int32 UpgradeLevel = 4;
+	int32 UpgradeLevel = 1;
 
 	APlayerShip();
 	virtual void Tick(float DeltaTime) override;
@@ -53,7 +56,7 @@ public:
 	void UpgradeShip(bool IsTierOneReset = false);
 
 	UFUNCTION(BlueprintCallable)
-	void AddQuest(const FString& InQuestName, FVector InLocation);
+	void AddQuest(const FString& InQuestName, FVector InLocation, int32 InIconType);
 
 	UFUNCTION(BlueprintCallable)
 	void UpdateQuest(const FString& InQuestName, bool InCompleted);
@@ -65,13 +68,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	USphereComponent* TargetField;
 
-	UStaticMesh* ShipTier4 = nullptr;
-	UStaticMesh* ShipTier3 = nullptr;
-	UStaticMesh* ShipTier2 = nullptr;
-	UStaticMesh* ShipTier1 = nullptr;
-
-	UStaticMesh* TurretLaser = nullptr;
-
 	UFUNCTION(BlueprintImplementableEvent, Category = "UI Functions")
 	void SendArmorFuelToUI(float InShieldPercent, float InArmorPercent, float InFuelPercent, float InOrePercent, float InPhoenixPercent);
 
@@ -79,7 +75,7 @@ protected:
 	void SendIconsToUI(bool InBroadsides, bool InMissiles, bool InFighters, bool InMissileReady, bool InFightersReady);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "UI Functions")
-	void SendMessageToUI(const FText& InMessage, bool DisplayImmediately = false);
+	void SendMessageToUI(const FText& InMessage, bool bCommMessage = false);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "UI Functions")
 	void ShipPermanentDeath();
@@ -89,9 +85,6 @@ protected:
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Quest Markers")
 	void UpdateQuestMarkerUI(const FQuestMarker& InMarker, FVector2D InPosition, bool IsEnlargedIcon);
-
-	UFUNCTION(BlueprintImplementableEvent, Category = "Quest Markers")
-	void RemoveQuestMarkerUI(const FQuestMarker& InMarker);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Ship Mechanics")
 	void PhoenixExplosion();
@@ -107,6 +100,8 @@ private:
 
 	TArray<FQuestMarker> ActiveQuestMarkers;
 
+	FTimerHandle PhoenixInvulnHandle;
+
 	bool bManualTargetSelected = false;
 
 	float ScanFrequency = 0.25f;
@@ -115,7 +110,7 @@ private:
 	bool bPhoenixReady = true;
 	float PhoenixTimer = 0.f;
 
-	int32 MaxOre = 0;
+	int32 MaxOre = 100;
 	int32 CurrentOre = 0;
 
 	// UI Icons
@@ -126,8 +121,6 @@ private:
 	void InputCameraZoomOut();
 	void InputStartSpeedBoost();
 	void InputStopSpeedBoost();
-	void InputFireMissile();
-	void InputLaunchFighters();
 
 	void ScanForTargets();
 	void SelectClosestTarget();

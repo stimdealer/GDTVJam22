@@ -18,10 +18,13 @@ public:
 	ANPCShip();
 	virtual void Tick(float DeltaTime) override;
 
-	UFUNCTION(BlueprintImplementableEvent, Category = "Target Arrows")
-	void ToggleArrows(bool IsVisible);
+	UFUNCTION(BlueprintImplementableEvent, Category = "Player Targetting")
+	void ToggleTurretArrows(bool IsActive);
 
-	UFUNCTION(BlueprintImplementableEvent, Category = "Target Arrows")
+	UFUNCTION(BlueprintImplementableEvent, Category = "Player Targetting")
+	void ToggleBroadsideArrows(bool IsActive);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Player Targetting")
 	void UpdateStats(float InArmorPercent);
 
 protected:

@@ -43,9 +43,9 @@ APlayerShip::APlayerShip()
 	CurrentFuel = 100.f;
 	MaxSpeed = 1000.f;
 	TurnSpeed = 120.f;
-	bShieldEnabled = true;
-	bBroadsides = true;
-	bLauncher = true;
+	bShieldEnabled = false;
+	bBroadsides = false;
+	bLauncher = false;
 
 	TurretsFirepower = 10.f;
 	TurretRange = 5000.f;
@@ -71,7 +71,7 @@ void APlayerShip::Tick(float DeltaTime)
 	else if (bIsDestroyed && !bDestructionComplete)
 	{
 		bDestructionComplete = true;
-		SendMessageToUI(FText::FromString(TEXT("Your ship was destroyed permanently.")), true);
+		SendMessageToUI(FText::FromString(TEXT("Your ship was destroyed permanently.")));
 		ShipPermanentDeath();
 	}
 
@@ -84,8 +84,8 @@ void APlayerShip::Tick(float DeltaTime)
 	ScanTimer += DeltaTime;
 	if (ScanTimer > ScanFrequency)
 	{
-		//GEngine->AddOnScreenDebugMessage(-1, 0.25f, FColor::Blue, FString::SanitizeFloat(CurrentShield));
-		//GEngine->AddOnScreenDebugMessage(-1, 0.25f, FColor::Green, FString::SanitizeFloat(CurrentArmor));
+		GEngine->AddOnScreenDebugMessage(-1, 0.25f, FColor::Blue, FString::SanitizeFloat(CurrentShield));
+		GEngine->AddOnScreenDebugMessage(-1, 0.25f, FColor::Green, FString::SanitizeFloat(CurrentArmor));
 
 		SendArmorFuelToUI(
 			CalculatePercent(CurrentShield, MaxShield),
@@ -105,7 +105,7 @@ void APlayerShip::Tick(float DeltaTime)
 			if (IsValid(Ship))
 			{
 				TurretTargetShip = Ship;
-				ClosestNPCShipTarget->ToggleArrows(true);
+				ClosestNPCShipTarget->ToggleTurretArrows(true);
 			}
 		}	
 	}
@@ -220,13 +220,14 @@ void APlayerShip::UpgradeShip(bool IsTierOneReset)
 	SendUpgradeLevelToUI(UpgradeLevel);
 }
 
-void APlayerShip::AddQuest(const FString& InQuestName, FVector InLocation)
+void APlayerShip::AddQuest(const FString& InQuestName, FVector InLocation, int32 InIconType)
 {
 	FQuestMarker NewQuestMarker;
 	NewQuestMarker.MarkerTitle = InQuestName;
 	NewQuestMarker.Location = InLocation;
 	NewQuestMarker.bReached = false;
 	NewQuestMarker.bCompleted = false;
+	NewQuestMarker.IconType = InIconType;
 	ActiveQuestMarkers.Add(NewQuestMarker);
 	FString NewQuestString = FString(TEXT("New objective added: ") + InQuestName);
 	SendMessageToUI(FText::FromString(NewQuestString));
@@ -249,11 +250,7 @@ void APlayerShip::UpdateQuestMarkers()
 
 		for (const FQuestMarker& Marker : ActiveQuestMarkers)
 		{
-			if (Marker.bCompleted) RemoveQuestMarkerUI(Marker);
-
-			bool bEnlargeIcon = false;
-			float Distance = FVector::Distance(this->GetActorLocation(), Marker.Location);
-			if (Distance < 25000.f) bEnlargeIcon = true;
+			bool bEnlargeIcon = FVector::Distance(this->GetActorLocation(), Marker.Location) < 25000.f;
 
 			if (PC->ProjectWorldLocationToScreen(Marker.Location, ScreenPosition, true))
 			{
@@ -301,7 +298,11 @@ void APlayerShip::ScanForTargets()
 
 void APlayerShip::SelectClosestTarget()
 {
-	if (IsValid(ClosestNPCShipTarget) && !bManualTargetSelected) ClosestNPCShipTarget->ToggleArrows(false);
+	if (IsValid(ClosestNPCShipTarget))
+	{
+		if (!bManualTargetSelected) ClosestNPCShipTarget->ToggleTurretArrows(false);
+		ClosestNPCShipTarget->ToggleBroadsideArrows(false);
+	}		
 
 	ANPCShip* NewClosestNPCShip = nullptr;
 	float ShortestDistance = 100000.f;
@@ -320,18 +321,19 @@ void APlayerShip::SelectClosestTarget()
 	}
 
 	if (!IsValid(ClosestNPCShipTarget) && !bManualTargetSelected) ClosestNPCShipTarget = NewClosestNPCShip;
-	else ClosestNPCShipTarget->ToggleArrows(true);
+	else ClosestNPCShipTarget->ToggleTurretArrows(true);
 	
 	BroadsideTargetShip = NewClosestNPCShip;
+	if (IsValid(NewClosestNPCShip)) NewClosestNPCShip->ToggleBroadsideArrows(true);
 }
 
 void APlayerShip::ManualSelectTarget(AJamShipBase* InNewTarget)
 {
-	if (IsValid(ClosestNPCShipTarget)) ClosestNPCShipTarget->ToggleArrows(false);
+	if (IsValid(ClosestNPCShipTarget)) ClosestNPCShipTarget->ToggleTurretArrows(false);
 
 	auto NewNPCTarget = Cast<ANPCShip>(InNewTarget);
 	if (IsValid(NewNPCTarget)) ClosestNPCShipTarget = NewNPCTarget;
-	if (IsValid(ClosestNPCShipTarget)) ClosestNPCShipTarget->ToggleArrows(true);
+	if (IsValid(ClosestNPCShipTarget)) ClosestNPCShipTarget->ToggleTurretArrows(true);
 }
 
 float APlayerShip::CalculatePercent(float InCurrent, float InMax)

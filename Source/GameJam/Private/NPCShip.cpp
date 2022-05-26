@@ -34,7 +34,8 @@ void ANPCShip::CheckDistanceToPlayer()
 	if (Distance > 20000)
 	{
 		TurretTargetShip = nullptr;
-		ToggleArrows(false);
+		ToggleTurretArrows(false);
+		ToggleBroadsideArrows(false);
 	}
 	else
 	{

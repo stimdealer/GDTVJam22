@@ -74,13 +74,29 @@ protected:
 
 	FVector CameraLead;
 
+	UFUNCTION(BlueprintImplementableEvent, Category = "SFX Calls")
+	void SFXThruster(bool IsBoosting);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "SFX Calls")
+	void SFXTurretsFiring(bool IsActive);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "SFX Calls")
+	void SFXBroadsidesFiring(bool IsActive);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "SFX Calls")
+	void SFXImpactDamage(bool IsShieldImpact);
+
+	UFUNCTION(BlueprintCallable)
+	void SpawnWeaponsVFX();
+
 	void FireWeapons();
 
 private:
 	UNiagaraSystem* NS_TurretBeam = nullptr;
 	UNiagaraSystem* NS_BroadsidesFire = nullptr;
 	UNiagaraSystem* NS_ThrusterTrail = nullptr;
-
+	
+	UNiagaraComponent* TurretHunterVFX = nullptr;
 	UPROPERTY()
 	UNiagaraComponent* TurretOneVFX = nullptr;
 	UPROPERTY()
@@ -122,5 +138,4 @@ private:
 	void BroadsidesTracking();
 
 	void UpdateVFX();
-	void SpawnWeaponsVFX();
 };
