@@ -10,3 +10,6 @@ The following Sound FX are being used from FreeSound.org (https://freesound.org/
 # Others
 
 - We used awesome free color palette made by Imphenzia.... Check his YT channel: https://www.youtube.com/c/Imphenzia
+
+## Sonniss
+The following Sound FX are being used from Sonnis (license: https://sonniss.com/gdc-bundle-license/ ):
