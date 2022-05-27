@@ -44,6 +44,8 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bPhoenixInProgress = false;
 
+	// Ship base stats
+	// Weapon Damage per .25 sec
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float TurretsFirepower = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -51,31 +53,35 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float ForwardFirepower = 0.f;
 
+	// Weapon Ranges
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float TurretRange = 5000.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float BroadsideRange = 5000.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float ForwardRange = 3500.f;
+
+	// Shield
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float MaxShield = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float CurrentShield = 0.f;
 
+	// Armor
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float MaxArmor = 250.f;
+	float MaxArmor = 500.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float CurrentArmor = 250.f;
+	float CurrentArmor = 500.f;
 
+	// Fuel - player only
 	float MaxFuel = 100.f;
 	float CurrentFuel = 100.f;
 
+	// Mobility
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float MaxSpeed = 1000.f;
+	float MaxSpeed = 500.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float TurnSpeed = 100.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float TurretRange = 5000.f;
-
-	float BroadsideRange = 5000.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float ForwardRange = 3500.f;
+	float TurnSpeed = 80.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bShieldEnabled = false;
@@ -85,8 +91,13 @@ protected:
 	bool bIsDestroyed = false;
 
 	bool bBroadsides = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	bool bLauncher = false;
+
 	bool bFighters = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bMissileReady = false;
 
 	bool bDestructionComplete = false;

@@ -55,9 +55,6 @@ public:
 	void ManualSelectTarget(AJamShipBase* InNewTarget);
 
 	UFUNCTION(BlueprintCallable)
-	void UpgradeShip(bool IsTierOneReset = false);
-
-	UFUNCTION(BlueprintCallable)
 	void AddQuest(const FString& InQuestName, FVector InLocation, int32 InIconType);
 
 	UFUNCTION(BlueprintCallable)
@@ -120,7 +117,7 @@ private:
 	float ScanTimer = 0.f;
 
 	bool bPhoenixReady = true;
-	float PhoenixTimer = 0.f;
+	float PhoenixTimer = 59.99f;
 
 	int32 MaxOre = 100;
 	int32 CurrentOre = 0;
@@ -138,6 +135,7 @@ private:
 	void SelectClosestTarget();
 
 	// Misc functions
+	void UpgradeShip(int32 InOreOverflow = 0, bool IsTierOneReset = false);
 	float CalculatePercent(float InCurrent, float InMax);
 	void UpdateFighters();
 };

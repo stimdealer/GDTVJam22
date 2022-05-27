@@ -34,24 +34,22 @@ APlayerShip::APlayerShip()
 	TargetField->SetSphereRadius(6000.f);
 	TargetField->bHiddenInGame = false;
 
-	// Initial stats for Tier 4 ship:
-	MaxShield = 500.f;
-	CurrentShield = 500.f;
-	MaxArmor = 2000.f;
-	CurrentArmor = 2000.f;
+	// Initial stats for Tier 1 ship:
+	MaxShield = 0.f;
+	CurrentShield = 0.f;
+	MaxArmor = 1000.f;
+	CurrentArmor = 1000.f;
 	MaxFuel = 100.f;
 	CurrentFuel = 100.f;
-	MaxSpeed = 1000.f;
-	TurnSpeed = 120.f;
+	MaxSpeed = 700.f;
+	TurnSpeed = 80.f;
 	bShieldEnabled = false;
 	bBroadsides = false;
 	bLauncher = false;
-	bFighters = true;
+	bFighters = false;
 
 	TurretsFirepower = 10.f;
 	TurretRange = 5000.f;
-
-	BroadsidesFirepower = 20.f;
 }
 
 void APlayerShip::Tick(float DeltaTime)
@@ -151,13 +149,14 @@ void APlayerShip::ApplyLootableBonus(int32 InType, int32 InAmount)
 		break;
 	case 3:
 		CurrentOre += InAmount;
+		int32 Overflow = CurrentOre - MaxOre;
 		CurrentOre = FMath::Clamp(CurrentOre, 0, MaxOre);
-		if (CurrentOre == MaxOre) UpgradeShip();
+		if (CurrentOre == MaxOre) UpgradeShip(Overflow);
 		break;
 	}
 }
 
-void APlayerShip::UpgradeShip(bool IsTierOneReset)
+void APlayerShip::UpgradeShip(int32 InOreOverflow, bool IsTierOneReset)
 {
 	if (IsTierOneReset)
 	{
@@ -172,55 +171,94 @@ void APlayerShip::UpgradeShip(bool IsTierOneReset)
 	switch (UpgradeLevel)
 	{
 	case 1:
+		TurretsFirepower = 10.f;
+		BroadsidesFirepower = 0.f;
+		TurretRange = 5000.f;
+
 		MaxShield = 0.f;
-		MaxArmor = 200.f;
-		MaxSpeed = 750.f;
-		TurnSpeed = 75.f;
+		MaxArmor = 1000.f;
+		MaxFuel = 100.f;
+		CurrentFuel = 100.f;
+
+		MaxSpeed = 700.f;
+		TurnSpeed = 80.f;
+		MaxOre = 100;
+
+		bShieldEnabled = false;
 		bBroadsides = false;
 		bLauncher = false;
 		bFighters = false;
-		bShieldEnabled = false;
-		MaxOre = 100;
+
 		break;
 	case 2:
+		TurretsFirepower = 15.f;
+		BroadsidesFirepower = 30.f;
+		BroadsideRange = 5000.f;
+		TurretRange = 6000.f;
+
 		MaxShield = 0.f;
-		MaxArmor = 300.f;
-		MaxSpeed = 875.f;
+		MaxArmor = 1500.f;
+		MaxFuel = 100.f;
+		CurrentFuel = 100.f;
+
+		MaxSpeed = 850.f;
 		TurnSpeed = 90.f;
+		MaxOre = 150;
+
+		bShieldEnabled = false;
 		bBroadsides = true;
 		bLauncher = false;
 		bFighters = false;
-		bShieldEnabled = false;
-		MaxOre = 150;
+
 		break;
 	case 3:
-		MaxShield = 150.f;
-		MaxArmor = 300.f;
+		TurretsFirepower = 20.f;
+		BroadsidesFirepower = 50.f;
+		BroadsideRange = 5500.f;
+		TurretRange = 7000.f;
+
+		MaxShield = 500.f;
+		MaxArmor = 1500.f;
+		MaxFuel = 100.f;
+		CurrentFuel = 100.f;
+
 		MaxSpeed = 1000.f;
-		TurnSpeed = 105.f;
+		TurnSpeed = 100.f;
+		MaxOre = 200;
+
+		bShieldEnabled = true;
 		bBroadsides = true;
 		bLauncher = true;
 		bFighters = false;
-		bShieldEnabled = true;
-		MaxOre = 200;
+
 		break;
 	case 4:
-		MaxShield = 300.f;
-		MaxArmor = 400.f;
+		TurretsFirepower = 25.f;
+		BroadsidesFirepower = 70.f;
+		BroadsideRange = 6000.f;
+		TurretRange = 8000.f;
+
+		MaxShield = 1000.f;
+		MaxArmor = 2000.f;
+		MaxFuel = 100.f;
+		CurrentFuel = 100.f;
+
 		MaxSpeed = 1200.f;
 		TurnSpeed = 120.f;
+		MaxOre = 0;
+
+		bShieldEnabled = true;
 		bBroadsides = true;
 		bLauncher = true;
 		bFighters = true;
-		bShieldEnabled = true;
-		MaxOre = 0;
+
 		break;
 	}
 
 	CurrentShield = MaxShield;
 	CurrentArmor = MaxArmor;
 	CurrentFuel = MaxFuel;
-	CurrentOre = 0;
+	CurrentOre = InOreOverflow;
 
 	SendUpgradeLevelToUI(UpgradeLevel);
 }
@@ -328,7 +366,7 @@ void APlayerShip::SelectClosestTarget()
 	if (!IsValid(ClosestNPCShipTarget) && !bManualTargetSelected) ClosestNPCShipTarget = NewClosestNPCShip;
 	else ClosestNPCShipTarget->ToggleTurretArrows(true);
 	
-	BroadsideTargetShip = NewClosestNPCShip;
+	if (bBroadsides) BroadsideTargetShip = NewClosestNPCShip;
 	if (IsValid(NewClosestNPCShip)) NewClosestNPCShip->ToggleBroadsideArrows(true);
 
 	if (IsValid(NewClosestNPCShip) && bFighters && FighterCount >= 1)

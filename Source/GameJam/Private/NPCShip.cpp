@@ -6,8 +6,6 @@
 ANPCShip::ANPCShip()
 {
 	PrimaryActorTick.bCanEverTick = true;
-
-	TurretsFirepower = 5.f;
 }
 
 void ANPCShip::Tick(float DeltaTime)
