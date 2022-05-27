@@ -74,25 +74,22 @@ void ATrackingMissile::BeginPlay()
 void ATrackingMissile::MoveTowardsTarget(float InDelta)
 {
 	if (!IsValid(Target)) return;
-	GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Yellow, TEXT("Missile moving to target!"));
 
 	FVector Direction = FVector(Target->GetActorLocation() - this->GetActorLocation()).GetSafeNormal();
 	this->SetActorRotation(Direction.Rotation());
 
 	FVector Translate = FVector(Direction * MissileSpeed * InDelta);
 	this->AddActorWorldOffset(Translate);
-
-	// Thruster VFX
 }
 
 void ATrackingMissile::Explode()
 {
-	Target->ShipApplyDamage(250.f);
+	Target->ShipApplyDamage(150.f);
 
 	auto ExplosionVFX = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
 		this,
 		NS_Explosion,
-		this->GetActorLocation(),
+		(this->GetActorForwardVector() * 500.f) + this->GetActorLocation(),
 		FRotator(0.0),
 		FVector(1.f),
 		true,
@@ -104,6 +101,5 @@ void ATrackingMissile::Explode()
 
 void ATrackingMissile::MissileLifeExpired()
 {
-	// Smoke VFX
 	this->Destroy();
 }

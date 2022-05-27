@@ -46,6 +46,7 @@ APlayerShip::APlayerShip()
 	bShieldEnabled = false;
 	bBroadsides = false;
 	bLauncher = false;
+	bFighters = true;
 
 	TurretsFirepower = 10.f;
 	TurretRange = 5000.f;
@@ -84,8 +85,8 @@ void APlayerShip::Tick(float DeltaTime)
 	ScanTimer += DeltaTime;
 	if (ScanTimer > ScanFrequency)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 0.25f, FColor::Blue, FString::SanitizeFloat(CurrentShield));
-		GEngine->AddOnScreenDebugMessage(-1, 0.25f, FColor::Green, FString::SanitizeFloat(CurrentArmor));
+		//GEngine->AddOnScreenDebugMessage(-1, 0.25f, FColor::Blue, FString::SanitizeFloat(CurrentShield));
+		//GEngine->AddOnScreenDebugMessage(-1, 0.25f, FColor::Green, FString::SanitizeFloat(CurrentArmor));
 
 		SendArmorFuelToUI(
 			CalculatePercent(CurrentShield, MaxShield),
@@ -94,8 +95,15 @@ void APlayerShip::Tick(float DeltaTime)
 			CalculatePercent(CurrentOre, MaxOre),
 			CalculatePercent(PhoenixTimer, 60.f)
 		);
-		SendIconsToUI(bBroadsides, bLauncher, bFighters, bMissileReady, bFightersReady);
+		SendIconsToUI(bBroadsides, bLauncher, bFighters, bMissileReady);
 		ScanTimer = 0.f;
+
+		UpdateFighters();
+
+		FighterCount = MaxFighters - DeployedFighters.Num();
+		FighterCount = FMath::Clamp(FighterCount, 0, MaxFighters);
+
+		GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Cyan, FString::FromInt(FighterCount));
 
 		ScanForTargets();
 
@@ -325,6 +333,11 @@ void APlayerShip::SelectClosestTarget()
 	
 	BroadsideTargetShip = NewClosestNPCShip;
 	if (IsValid(NewClosestNPCShip)) NewClosestNPCShip->ToggleBroadsideArrows(true);
+
+	if (IsValid(NewClosestNPCShip) && bFighters && FighterCount >= 1)
+	{
+		LaunchFighter(NewClosestNPCShip);
+	}
 }
 
 void APlayerShip::ManualSelectTarget(AJamShipBase* InNewTarget)
@@ -334,6 +347,11 @@ void APlayerShip::ManualSelectTarget(AJamShipBase* InNewTarget)
 	auto NewNPCTarget = Cast<ANPCShip>(InNewTarget);
 	if (IsValid(NewNPCTarget)) ClosestNPCShipTarget = NewNPCTarget;
 	if (IsValid(ClosestNPCShipTarget)) ClosestNPCShipTarget->ToggleTurretArrows(true);
+
+	if (IsValid(ClosestNPCShipTarget) && bFighters && FighterCount >= 1)
+	{
+		LaunchFighter(ClosestNPCShipTarget);
+	}
 }
 
 float APlayerShip::CalculatePercent(float InCurrent, float InMax)
@@ -342,7 +360,14 @@ float APlayerShip::CalculatePercent(float InCurrent, float InMax)
 	else return InCurrent / InMax;
 }
 
-bool APlayerShip::GetFightersStatus()
+void APlayerShip::UpdateFighters()
 {
-	return bFighters;
+	TArray<AJamShipBase*> FightersToCheck = DeployedFighters;
+	for (int32 i = 0; i < FightersToCheck.Num(); ++i)
+	{
+		if (!IsValid(FightersToCheck[i])) DeployedFighters.Remove(FightersToCheck[i]);
+	}
+	GEngine->AddOnScreenDebugMessage(-1, 0.5f, FColor::Green, FString::FromInt(DeployedFighters.Num()));
 }
+
+bool APlayerShip::GetFightersStatus() {	return bFighters; }

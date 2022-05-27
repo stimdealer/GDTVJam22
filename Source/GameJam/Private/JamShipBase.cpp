@@ -16,6 +16,10 @@ AJamShipBase::AJamShipBase()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
+	NS_DevestatorBeam = LoadObject<UNiagaraSystem>(nullptr, TEXT("NiagaraSystem'/Game/VFX/NS_DevestatorBeam.NS_DevestatorBeam'"), nullptr, LOAD_None, nullptr);
+	if (!ensure(NS_DevestatorBeam != nullptr)) return;
+	NS_GatlingFire = LoadObject<UNiagaraSystem>(nullptr, TEXT("NiagaraSystem'/Game/VFX/NS_FighterGatling.NS_FighterGatling'"), nullptr, LOAD_None, nullptr);
+	if (!ensure(NS_GatlingFire != nullptr)) return;
 	NS_TurretBeam = LoadObject<UNiagaraSystem>(nullptr, TEXT("NiagaraSystem'/Game/VFX/NS_TurretFire.NS_TurretFire'"), nullptr, LOAD_None, nullptr);
 	if (!ensure(NS_TurretBeam != nullptr)) return;
 	NS_BroadsidesFire = LoadObject<UNiagaraSystem>(nullptr, TEXT("NiagaraSystem'/Game/VFX/NS_BroadsidesFire.NS_BroadsidesFire'"), nullptr, LOAD_None, nullptr);
@@ -48,6 +52,7 @@ void AJamShipBase::Tick(float DeltaTime)
 	MoveToDestination(DeltaTime);
 	TurretsTracking(DeltaTime);
 	BroadsidesTracking();
+	ForwardTracking();
 
 	if (bIsBoosting) CurrentFuel -= DeltaTime;
 
@@ -88,6 +93,13 @@ void AJamShipBase::FireWeapons()
 		else SFXBroadsidesFiring(false);
 	}
 	else SFXBroadsidesFiring(false);
+
+	if (IsValid(ForwardTargetShip) && bForwardInRange && bForwardAngleValid)
+	{
+		ForwardTargetShip->ShipApplyDamage(ForwardFirepower);
+		SFXForwardFiring(true);
+	}
+	else SFXForwardFiring(false);
 }
 
 void AJamShipBase::MoveToDestination(float InDelta)
@@ -187,8 +199,8 @@ void AJamShipBase::TurretsTracking(float InDelta)
 				bIsTurretsInRange = FVector::Distance(TurretTargetShip->GetActorLocation(), this->GetActorLocation()) < TurretRange;
 			}
 
-			FRotator NewRotation = FMath::RInterpConstantTo(Turret->GetRelativeRotation(), FRotator(0.0, NewYaw, 0.0), InDelta, 100.f);
-			Turret->SetRelativeRotation(NewRotation);
+FRotator NewRotation = FMath::RInterpConstantTo(Turret->GetRelativeRotation(), FRotator(0.0, NewYaw, 0.0), InDelta, 100.f);
+Turret->SetRelativeRotation(NewRotation);
 		}
 		else GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Yellow, TEXT("Fire socket not found"));
 	}
@@ -206,6 +218,19 @@ void AJamShipBase::BroadsidesTracking()
 	bBroadsidesInRange = FVector::Distance(BroadsideTargetShip->GetActorLocation(), this->GetActorLocation()) < BroadsideRange;
 }
 
+void AJamShipBase::ForwardTracking()
+{
+	if (!IsValid(ForwardTargetShip)) return;
+
+	FVector DirectionToTarget = FVector(ForwardTargetShip->GetActorLocation() - this->GetActorLocation()).GetSafeNormal();
+
+	bForwardAngleValid = FMath::RadiansToDegrees(acosf(FVector::DotProduct(this->GetActorForwardVector(), DirectionToTarget))) < 30.f;
+
+	bForwardInRange = FVector::Distance(ForwardTargetShip->GetActorLocation(), this->GetActorLocation()) < ForwardRange;
+
+	GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::White, TEXT("Forward tracking!"));
+}
+
 void AJamShipBase::ShipApplyDamage(float InDamage)
 {
 	if (bPhoenixInProgress)
@@ -215,8 +240,6 @@ void AJamShipBase::ShipApplyDamage(float InDamage)
 	}
 
 	bShieldCooldown = true;
-
-	GEngine->AddOnScreenDebugMessage(-1, 0.25f, FColor::White, FString::SanitizeFloat(InDamage));
 
 	GetWorldTimerManager().ClearTimer(ShieldCooldownHandle);
 	GetWorldTimerManager().SetTimer(ShieldCooldownHandle, ShieldCooldownDelegate, 10.f, false);
@@ -251,8 +274,6 @@ void AJamShipBase::OnShieldCooldownComplete()
 
 void AJamShipBase::UpdateVFX()
 {
-	if (!NS_TurretBeam) return;
-
 	if (bIsTurretsAimedAtTarget && bIsTurretsInRange && IsValid(TurretTargetShip))
 	{
 		if (TurretOneVFX && TurretTwoVFX)
@@ -277,7 +298,7 @@ void AJamShipBase::UpdateVFX()
 		}
 		else if (TurretHunterVFX) TurretHunterVFX->Deactivate();
 	}
-		
+
 	if (NS_BroadsidesFire && BroadsidesStbdVFX && BroadsidesPortVFX)
 	{
 		if (IsValid(BroadsideTargetShip) && bBroadsidesInRange && bStbdAngleValid) BroadsidesStbdVFX->Activate();
@@ -286,15 +307,73 @@ void AJamShipBase::UpdateVFX()
 		if (IsValid(BroadsideTargetShip) && bBroadsidesInRange && bPortAngleValid) BroadsidesPortVFX->Activate();
 		else BroadsidesPortVFX->Deactivate();
 	}
+
+	if (GatlingFighterVFX)
+	{
+		if (IsValid(ForwardTargetShip) && bForwardInRange && bForwardAngleValid) GatlingFighterVFX->Activate();
+		else GatlingFighterVFX->Deactivate();
+	}
+
+	if (DevestatorOneVFX && DevestatorTwoVFX)
+	{
+		if (IsValid(ForwardTargetShip) && bForwardInRange && bForwardAngleValid)
+		{
+			DevestatorOneVFX->Activate();
+			DevestatorTwoVFX->Activate();
+		}
+		else
+		{
+			DevestatorOneVFX->Deactivate();
+			DevestatorTwoVFX->Deactivate();
+		}
+	}
 }
 
 void AJamShipBase::SpawnWeaponsVFX()
 {
-	if (!NS_TurretBeam) return;
-	if (!NS_BroadsidesFire) return;
-	if (!NS_ThrusterTrail) return;
+	if (NS_DevestatorBeam && PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Devestator_1")))
+	{
+		DevestatorOneVFX = UNiagaraFunctionLibrary::SpawnSystemAttached(
+			NS_DevestatorBeam,
+			PhysicsRoot,
+			FName("Devestator_1"),
+			FVector(0.0),
+			FRotator(0.0),
+			EAttachLocation::KeepRelativeOffset,
+			false,
+			false
+		);
+	}
 
-	if (PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Turret_Hunter")))
+	if (NS_DevestatorBeam && PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Devestator_2")))
+	{
+		DevestatorTwoVFX = UNiagaraFunctionLibrary::SpawnSystemAttached(
+			NS_DevestatorBeam,
+			PhysicsRoot,
+			FName("Devestator_2"),
+			FVector(0.0),
+			FRotator(0.0),
+			EAttachLocation::KeepRelativeOffset,
+			false,
+			false
+		);
+	}
+
+	if (NS_GatlingFire && PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Gatling_Fighter")))
+	{
+		GatlingFighterVFX = UNiagaraFunctionLibrary::SpawnSystemAttached(
+			NS_GatlingFire,
+			PhysicsRoot,
+			FName("Gatling_Fighter"),
+			FVector(0.0),
+			FRotator(0.0),
+			EAttachLocation::KeepRelativeOffset,
+			false,
+			false
+		);
+	}
+
+	if (NS_TurretBeam && PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Turret_Hunter")))
 	{
 		TurretHunterVFX = UNiagaraFunctionLibrary::SpawnSystemAttached(
 			NS_TurretBeam,
@@ -309,7 +388,7 @@ void AJamShipBase::SpawnWeaponsVFX()
 		TurretHunterVFX->SetNiagaraVariableLinearColor(TEXT("BeamColor"), FLinearColor(100.f, 0.f, 0.f, 1.f));
 	}
 
-	if (PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Turret_1")))
+	if (NS_TurretBeam && PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Turret_1")))
 	{
 		TurretOneVFX = UNiagaraFunctionLibrary::SpawnSystemAttached(
 			NS_TurretBeam,
@@ -323,7 +402,7 @@ void AJamShipBase::SpawnWeaponsVFX()
 		);
 	}
 
-	if (PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Turret_2")))
+	if (NS_TurretBeam && PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Turret_2")))
 	{
 		TurretTwoVFX = UNiagaraFunctionLibrary::SpawnSystemAttached(
 			NS_TurretBeam,
@@ -337,7 +416,7 @@ void AJamShipBase::SpawnWeaponsVFX()
 		);
 	}
 
-	if (PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Broadsides_Port")))
+	if (NS_BroadsidesFire && PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Broadsides_Port")))
 	{
 		BroadsidesPortVFX = UNiagaraFunctionLibrary::SpawnSystemAttached(
 			NS_BroadsidesFire,
@@ -351,7 +430,7 @@ void AJamShipBase::SpawnWeaponsVFX()
 		);
 	}
 
-	if (PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Broadsides_Stbd")))
+	if (NS_BroadsidesFire && PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Broadsides_Stbd")))
 	{
 		BroadsidesStbdVFX = UNiagaraFunctionLibrary::SpawnSystemAttached(
 			NS_BroadsidesFire,
@@ -365,7 +444,7 @@ void AJamShipBase::SpawnWeaponsVFX()
 		);
 	}
 
-	if (PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Boost_1")))
+	if (NS_ThrusterTrail && PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Boost_1")))
 	{
 		BoostThrusterOne = UNiagaraFunctionLibrary::SpawnSystemAttached(
 			NS_ThrusterTrail,
@@ -381,7 +460,7 @@ void AJamShipBase::SpawnWeaponsVFX()
 		BoostThrusterOne->SetNiagaraVariableLinearColor(TEXT("Color"), FLinearColor(100.f, 50.f, 0.f, 1.f));
 	}
 
-	if (PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Boost_2")))
+	if (NS_ThrusterTrail && PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Boost_2")))
 	{
 		BoostThrusterTwo = UNiagaraFunctionLibrary::SpawnSystemAttached(
 			NS_ThrusterTrail,
@@ -397,7 +476,7 @@ void AJamShipBase::SpawnWeaponsVFX()
 		BoostThrusterTwo->SetNiagaraVariableLinearColor(TEXT("Color"), FLinearColor(100.f, 50.f, 0.f, 1.f));
 	}
 
-	if (PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Boost_3")))
+	if (NS_ThrusterTrail && PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Boost_3")))
 	{
 		BoostThrusterThree = UNiagaraFunctionLibrary::SpawnSystemAttached(
 			NS_ThrusterTrail,
@@ -413,7 +492,7 @@ void AJamShipBase::SpawnWeaponsVFX()
 		BoostThrusterThree->SetNiagaraVariableLinearColor(TEXT("Color"), FLinearColor(100.f, 50.f, 0.f, 1.f));
 	}
 
-	if (PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Boost_4")))
+	if (NS_ThrusterTrail && PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Boost_4")))
 	{
 		BoostThrusterFour = UNiagaraFunctionLibrary::SpawnSystemAttached(
 			NS_ThrusterTrail,

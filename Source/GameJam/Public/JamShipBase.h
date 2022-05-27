@@ -36,7 +36,7 @@ protected:
 	AJamShipBase* BroadsideTargetShip = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	AJamShipBase* FightersTargetShip = nullptr;
+	AJamShipBase* ForwardTargetShip = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	FVector Destination;
@@ -44,25 +44,42 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bPhoenixInProgress = false;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float TurretsFirepower = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float BroadsidesFirepower = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float ForwardFirepower = 0.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float MaxShield = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float CurrentShield = 0.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float MaxArmor = 250.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float CurrentArmor = 250.f;
 
 	float MaxFuel = 100.f;
 	float CurrentFuel = 100.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float MaxSpeed = 1000.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float TurnSpeed = 100.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float TurretRange = 5000.f;
-	float BroadsideRange = 7500.f;
 
+	float BroadsideRange = 5000.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float ForwardRange = 3500.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bShieldEnabled = false;
+
 	bool bShieldCooldown = false;
 	bool bIsBoosting = false;
 	bool bIsDestroyed = false;
@@ -71,7 +88,6 @@ protected:
 	bool bLauncher = false;
 	bool bFighters = false;
 	bool bMissileReady = false;
-	bool bFightersReady = false;
 
 	bool bDestructionComplete = false;
 
@@ -87,6 +103,9 @@ protected:
 	void SFXBroadsidesFiring(bool IsActive);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "SFX Calls")
+	void SFXForwardFiring(bool IsActive);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "SFX Calls")
 	void SFXImpactDamage(bool IsShieldImpact);
 
 	UFUNCTION(BlueprintCallable)
@@ -95,26 +114,23 @@ protected:
 	void FireWeapons();
 
 private:
+	UNiagaraSystem* NS_DevestatorBeam = nullptr;
+	UNiagaraSystem* NS_GatlingFire = nullptr;
 	UNiagaraSystem* NS_TurretBeam = nullptr;
 	UNiagaraSystem* NS_BroadsidesFire = nullptr;
 	UNiagaraSystem* NS_ThrusterTrail = nullptr;
-	
+
+	UNiagaraComponent* DevestatorOneVFX = nullptr;
+	UNiagaraComponent* DevestatorTwoVFX = nullptr;
+	UNiagaraComponent* GatlingFighterVFX = nullptr;
 	UNiagaraComponent* TurretHunterVFX = nullptr;
-	UPROPERTY()
 	UNiagaraComponent* TurretOneVFX = nullptr;
-	UPROPERTY()
 	UNiagaraComponent* TurretTwoVFX = nullptr;
-	UPROPERTY()
 	UNiagaraComponent* BroadsidesPortVFX = nullptr;
-	UPROPERTY()
 	UNiagaraComponent* BroadsidesStbdVFX = nullptr;
-	UPROPERTY()
 	UNiagaraComponent* BoostThrusterOne = nullptr;
-	UPROPERTY()
 	UNiagaraComponent* BoostThrusterTwo = nullptr;
-	UPROPERTY()
 	UNiagaraComponent* BoostThrusterThree = nullptr;
-	UPROPERTY()
 	UNiagaraComponent* BoostThrusterFour = nullptr;
 
 	FTimerHandle ShieldCooldownHandle;
@@ -129,6 +145,9 @@ private:
 	bool bPortAngleValid = false;
 	bool bBroadsidesInRange = false;
 
+	bool bForwardAngleValid = false;
+	bool bForwardInRange = false;
+
 	float WeaponsTimer = 0.f;
 	float MissileTimer = 0.f;
 
@@ -139,6 +158,7 @@ private:
 
 	void TurretsTracking(float InDelta);
 	void BroadsidesTracking();
+	void ForwardTracking();
 
 	void UpdateVFX();
 };

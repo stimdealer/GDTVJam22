@@ -42,6 +42,8 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	int32 UpgradeLevel = 1;
 
+	int32 FighterCount = 3;
+
 	APlayerShip();
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
@@ -68,11 +70,23 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	USphereComponent* TargetField;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<AJamShipBase*> DeployedFighters;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 MaxFighters = 3;
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Ship Functions")
+	void LaunchFighter(ANPCShip* InTarget);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Ship Functions")
+	void PhoenixExplosion();
+
 	UFUNCTION(BlueprintImplementableEvent, Category = "UI Functions")
 	void SendArmorFuelToUI(float InShieldPercent, float InArmorPercent, float InFuelPercent, float InOrePercent, float InPhoenixPercent);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "UI Functions")
-	void SendIconsToUI(bool InBroadsides, bool InMissiles, bool InFighters, bool InMissileReady, bool InFightersReady);
+	void SendIconsToUI(bool InBroadsides, bool InMissiles, bool InFighters, bool InMissileReady);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "UI Functions")
 	void SendMessageToUI(const FText& InMessage, bool bCommMessage = false);
@@ -83,14 +97,12 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "UI Functions")
 	void SendUpgradeLevelToUI(int32 InLevel);
 
-	UFUNCTION(BlueprintImplementableEvent, Category = "Quest Markers")
+	UFUNCTION(BlueprintImplementableEvent, Category = "UI Functions")
 	void UpdateQuestMarkerUI(const FQuestMarker& InMarker, FVector2D InPosition, bool IsEnlargedIcon);
-
-	UFUNCTION(BlueprintImplementableEvent, Category = "Ship Mechanics")
-	void PhoenixExplosion();
 
 private:
 	TArray<AJamShipBase*> AllTargets;
+
 	ANPCShip* ClosestNPCShipTarget = nullptr;
 
 	USceneComponent* CameraAttach;
@@ -127,4 +139,5 @@ private:
 
 	// Misc functions
 	float CalculatePercent(float InCurrent, float InMax);
+	void UpdateFighters();
 };
