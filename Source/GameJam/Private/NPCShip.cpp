@@ -34,6 +34,7 @@ void ANPCShip::CheckDistanceToPlayer()
 	if (Distance > 20000)
 	{
 		TurretTargetShip = nullptr;
+		ForwardTargetShip = nullptr;
 		ToggleTurretArrows(false);
 		ToggleBroadsideArrows(false);
 	}
@@ -46,5 +47,6 @@ void ANPCShip::CheckDistanceToPlayer()
 void ANPCShip::EngagePlayer()
 {
 	TurretTargetShip = PlayerShipRef;
+	ForwardTargetShip = PlayerShipRef;
 	if (IsValid(TurretTargetShip)) Destination = TurretTargetShip->GetActorLocation();
 }

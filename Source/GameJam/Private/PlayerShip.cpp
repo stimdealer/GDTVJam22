@@ -85,9 +85,6 @@ void APlayerShip::Tick(float DeltaTime)
 	ScanTimer += DeltaTime;
 	if (ScanTimer > ScanFrequency)
 	{
-		//GEngine->AddOnScreenDebugMessage(-1, 0.25f, FColor::Blue, FString::SanitizeFloat(CurrentShield));
-		//GEngine->AddOnScreenDebugMessage(-1, 0.25f, FColor::Green, FString::SanitizeFloat(CurrentArmor));
-
 		SendArmorFuelToUI(
 			CalculatePercent(CurrentShield, MaxShield),
 			CalculatePercent(CurrentArmor, MaxArmor),

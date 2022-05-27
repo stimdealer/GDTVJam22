@@ -11,7 +11,7 @@ AFighterShip::AFighterShip()
 	PrimaryActorTick.bCanEverTick = true;
 
 	MaxSpeed = 2000.f;
-	TurnSpeed = 500.f;
+	TurnSpeed = 350.f;
 
 	ForwardFirepower = 10.f;
 }
@@ -43,11 +43,8 @@ void AFighterShip::Tick(float DeltaTime)
 
 void AFighterShip::AssignTarget(ANPCShip* InTarget, APlayerShip* InPlayerShipRef)
 {
+	SpawnWeaponsVFX();
 	if (IsValid(InPlayerShipRef)) PlayerShipRef = InPlayerShipRef;
-	if (IsValid(InTarget))
-	{
-		ForwardTargetShip = Cast<AJamShipBase>(InTarget);
-		if (IsValid(ForwardTargetShip)) UE_LOG(LogTemp, Warning, TEXT("Fighter pursuing target: %s"), *ForwardTargetShip->GetName());
-	}
+	if (IsValid(InTarget)) ForwardTargetShip = Cast<AJamShipBase>(InTarget);
 	bEngagingTarget = true;
 }

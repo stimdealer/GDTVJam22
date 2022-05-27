@@ -96,6 +96,7 @@ void AJamShipBase::FireWeapons()
 
 	if (IsValid(ForwardTargetShip) && bForwardInRange && bForwardAngleValid)
 	{
+		GEngine->AddOnScreenDebugMessage(-1, 0.25f, FColor::Blue, TEXT("Applying damage with forward guns!"));
 		ForwardTargetShip->ShipApplyDamage(ForwardFirepower);
 		SFXForwardFiring(true);
 	}
@@ -225,10 +226,9 @@ void AJamShipBase::ForwardTracking()
 	FVector DirectionToTarget = FVector(ForwardTargetShip->GetActorLocation() - this->GetActorLocation()).GetSafeNormal();
 
 	bForwardAngleValid = FMath::RadiansToDegrees(acosf(FVector::DotProduct(this->GetActorForwardVector(), DirectionToTarget))) < 30.f;
-
+	if (bForwardAngleValid) GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::White, TEXT("Forward angle valid!"));
 	bForwardInRange = FVector::Distance(ForwardTargetShip->GetActorLocation(), this->GetActorLocation()) < ForwardRange;
-
-	GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::White, TEXT("Forward tracking!"));
+	if (bForwardInRange) GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::White, TEXT("Forward range valid!"));
 }
 
 void AJamShipBase::ShipApplyDamage(float InDamage)
@@ -319,7 +319,9 @@ void AJamShipBase::UpdateVFX()
 		if (IsValid(ForwardTargetShip) && bForwardInRange && bForwardAngleValid)
 		{
 			DevestatorOneVFX->Activate();
+			DevestatorOneVFX->SetNiagaraVariableVec3(TEXT("TargetLocation"), ForwardTargetShip->GetActorLocation());
 			DevestatorTwoVFX->Activate();
+			DevestatorTwoVFX->SetNiagaraVariableVec3(TEXT("TargetLocation"), ForwardTargetShip->GetActorLocation());
 		}
 		else
 		{
