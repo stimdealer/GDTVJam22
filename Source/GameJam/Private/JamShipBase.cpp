@@ -78,6 +78,7 @@ void AJamShipBase::FireWeapons()
 {
 	if (IsValid(TurretTargetShip) && bIsTurretsInRange && bIsTurretsAimedAtTarget)
 	{
+		if (TurretBossOneVFX) GEngine->AddOnScreenDebugMessage(-1, 0.25f, FColor::Yellow, TEXT("Boss lasers firing!"));
 		TurretTargetShip->ShipApplyDamage(TurretsFirepower);
 		SFXTurretsFiring(true);
 	}
@@ -283,6 +284,21 @@ void AJamShipBase::UpdateVFX()
 			TurretHunterVFX->SetNiagaraVariableVec3(TEXT("TargetLocation"), TurretTargetShip->GetActorLocation());
 			TurretHunterVFX->Activate();
 		}
+		else if (TurretBossOneVFX && TurretBossTwoVFX && TurretBossThreeVFX && TurretBossFourVFX && TurretBossFiveVFX && TurretBossSixVFX)
+		{
+			TurretBossOneVFX->SetNiagaraVariableVec3(TEXT("TargetLocation"), TurretTargetShip->GetActorLocation());
+			TurretBossOneVFX->Activate();
+			TurretBossTwoVFX->SetNiagaraVariableVec3(TEXT("TargetLocation"), TurretTargetShip->GetActorLocation());
+			TurretBossTwoVFX->Activate();
+			TurretBossThreeVFX->SetNiagaraVariableVec3(TEXT("TargetLocation"), TurretTargetShip->GetActorLocation());
+			TurretBossThreeVFX->Activate();
+			TurretBossFourVFX->SetNiagaraVariableVec3(TEXT("TargetLocation"), TurretTargetShip->GetActorLocation());
+			TurretBossFourVFX->Activate();
+			TurretBossFiveVFX->SetNiagaraVariableVec3(TEXT("TargetLocation"), TurretTargetShip->GetActorLocation());
+			TurretBossFiveVFX->Activate();
+			TurretBossSixVFX->SetNiagaraVariableVec3(TEXT("TargetLocation"), TurretTargetShip->GetActorLocation());
+			TurretBossSixVFX->Activate();
+		}
 	}
 	else
 	{
@@ -292,6 +308,15 @@ void AJamShipBase::UpdateVFX()
 			TurretTwoVFX->Deactivate();
 		}
 		else if (TurretHunterVFX) TurretHunterVFX->Deactivate();
+		else if (TurretBossOneVFX && TurretBossTwoVFX && TurretBossThreeVFX && TurretBossFourVFX && TurretBossFiveVFX && TurretBossSixVFX)
+		{
+			TurretBossOneVFX->Deactivate();
+			TurretBossTwoVFX->Deactivate();
+			TurretBossThreeVFX->Deactivate();
+			TurretBossFourVFX->Deactivate();
+			TurretBossFiveVFX->Deactivate();
+			TurretBossSixVFX->Deactivate();
+		}
 	}
 
 	if (NS_BroadsidesFire && BroadsidesStbdVFX && BroadsidesPortVFX)
@@ -411,6 +436,96 @@ void AJamShipBase::SpawnWeaponsVFX()
 			false,
 			false
 		);
+	}
+
+	if (NS_TurretBeam && PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Turret_Boss_1")))
+	{
+		TurretBossOneVFX = UNiagaraFunctionLibrary::SpawnSystemAttached(
+			NS_TurretBeam,
+			PhysicsRoot,
+			FName("Turret_Boss_1"),
+			FVector(0.0),
+			FRotator(0.0),
+			EAttachLocation::KeepRelativeOffset,
+			false,
+			false
+		);
+		TurretBossOneVFX->SetNiagaraVariableLinearColor(TEXT("BeamColor"), FLinearColor(0.f, 100.f, 5.f, 1.f));
+	}
+
+	if (NS_TurretBeam && PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Turret_Boss_2")))
+	{
+		TurretBossTwoVFX = UNiagaraFunctionLibrary::SpawnSystemAttached(
+			NS_TurretBeam,
+			PhysicsRoot,
+			FName("Turret_Boss_2"),
+			FVector(0.0),
+			FRotator(0.0),
+			EAttachLocation::KeepRelativeOffset,
+			false,
+			false
+		);
+		TurretBossTwoVFX->SetNiagaraVariableLinearColor(TEXT("BeamColor"), FLinearColor(0.f, 100.f, 5.f, 1.f));
+	}
+
+	if (NS_TurretBeam && PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Turret_Boss_3")))
+	{
+		TurretBossThreeVFX = UNiagaraFunctionLibrary::SpawnSystemAttached(
+			NS_TurretBeam,
+			PhysicsRoot,
+			FName("Turret_Boss_3"),
+			FVector(0.0),
+			FRotator(0.0),
+			EAttachLocation::KeepRelativeOffset,
+			false,
+			false
+		);
+		TurretBossThreeVFX->SetNiagaraVariableLinearColor(TEXT("BeamColor"), FLinearColor(0.f, 100.f, 5.f, 1.f));
+	}
+
+	if (NS_TurretBeam && PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Turret_Boss_4")))
+	{
+		TurretBossFourVFX = UNiagaraFunctionLibrary::SpawnSystemAttached(
+			NS_TurretBeam,
+			PhysicsRoot,
+			FName("Turret_Boss_4"),
+			FVector(0.0),
+			FRotator(0.0),
+			EAttachLocation::KeepRelativeOffset,
+			false,
+			false
+		);
+		TurretBossFourVFX->SetNiagaraVariableLinearColor(TEXT("BeamColor"), FLinearColor(0.f, 100.f, 5.f, 1.f));
+	}
+
+	if (NS_TurretBeam && PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Turret_Boss_5")))
+	{
+		TurretBossFiveVFX = UNiagaraFunctionLibrary::SpawnSystemAttached(
+			NS_TurretBeam,
+			PhysicsRoot,
+			FName("Turret_Boss_5"),
+			FVector(0.0),
+			FRotator(0.0),
+			EAttachLocation::KeepRelativeOffset,
+			false,
+			false
+		);
+		TurretBossFiveVFX->SetNiagaraVariableLinearColor(TEXT("BeamColor"), FLinearColor(0.f, 100.f, 5.f, 1.f));
+	}
+
+	if (NS_TurretBeam && PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Turret_Boss_6")))
+	{
+		TurretBossSixVFX = UNiagaraFunctionLibrary::SpawnSystemAttached(
+			NS_TurretBeam,
+			PhysicsRoot,
+			FName("Turret_Boss_6"),
+			FVector(0.0),
+			FRotator(0.0),
+			EAttachLocation::KeepRelativeOffset,
+			false,
+			false
+		);
+		TurretBossSixVFX->SetNiagaraVariableLinearColor(TEXT("BeamColor"), FLinearColor(0.f, 100.f, 5.f, 1.f));
 	}
 
 	if (NS_BroadsidesFire && PhysicsRoot->GetStaticMesh()->FindSocket(TEXT("Broadsides_Port")))

@@ -144,6 +144,12 @@ private:
 	UNiagaraComponent* TurretHunterVFX = nullptr;
 	UNiagaraComponent* TurretOneVFX = nullptr;
 	UNiagaraComponent* TurretTwoVFX = nullptr;
+	UNiagaraComponent* TurretBossOneVFX = nullptr;
+	UNiagaraComponent* TurretBossTwoVFX = nullptr;
+	UNiagaraComponent* TurretBossThreeVFX = nullptr;
+	UNiagaraComponent* TurretBossFourVFX = nullptr;
+	UNiagaraComponent* TurretBossFiveVFX = nullptr;
+	UNiagaraComponent* TurretBossSixVFX = nullptr;
 	UNiagaraComponent* BroadsidesPortVFX = nullptr;
 	UNiagaraComponent* BroadsidesStbdVFX = nullptr;
 	UNiagaraComponent* BoostThrusterOne = nullptr;
