@@ -8,6 +8,7 @@
 #include "Camera/CameraComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/BoxComponent.h"
+#include "Blueprint/UserWidget.h"
 
 // Local includes
 #include "NPCShip.h"
@@ -15,6 +16,12 @@
 APlayerShip::APlayerShip()
 {
 	PrimaryActorTick.bCanEverTick = true;
+
+	//static ConstructorHelpers::FObjectFinder<UMaterial> QuestArrowMatObject(TEXT("/Game/Materials/BlockPreviewRed_M.BlockPreviewRed_M"));
+	//if (QuestArrowMatObject.Object) { QuestArrowMaterial = QuestArrowMatObject.Object; }
+
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> QuestArrowMeshObject(TEXT("StaticMesh'/Game/Models/UI_Elements/5m_Plane.5m_Plane'"));
+	if (QuestArrowMeshObject.Object) QuestArrowMesh = QuestArrowMeshObject.Object;
 
 	CameraAttach = CreateDefaultSubobject<USceneComponent>(TEXT("Camera Attach"));
 
@@ -50,6 +57,8 @@ APlayerShip::APlayerShip()
 
 	TurretsFirepower = 10.f;
 	TurretRange = 5000.f;
+
+	bNPCControlled = false;
 }
 
 void APlayerShip::Tick(float DeltaTime)
@@ -57,12 +66,13 @@ void APlayerShip::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	CameraAttach->SetWorldLocation(FMath::VInterpTo(CameraAttach->GetComponentLocation(), CameraLead, DeltaTime, 3.f));
-	UpdateQuestMarkers();
+
+	UpdateQuestArrows();
 
 	if (bIsDestroyed && bPhoenixReady)
 	{
-		SendMessageToUI(FText::FromString(TEXT("Phoenix systems activated. Ship has been reconstituted with minimal abilities.")));
-		UpgradeShip(true);
+		SendMessageToUI(FText::FromString(TEXT("Phoenix systems activated.")));
+		UpgradeShip(0, true);
 		PhoenixTimer = 0.f;
 		bPhoenixReady = false;
 		bIsDestroyed = false;
@@ -97,8 +107,6 @@ void APlayerShip::Tick(float DeltaTime)
 
 		FighterCount = MaxFighters - DeployedFighters.Num();
 		FighterCount = FMath::Clamp(FighterCount, 0, MaxFighters);
-
-		GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Cyan, FString::FromInt(FighterCount));
 
 		ScanForTargets();
 
@@ -245,7 +253,7 @@ void APlayerShip::UpgradeShip(int32 InOreOverflow, bool IsTierOneReset)
 
 		MaxSpeed = 1200.f;
 		TurnSpeed = 120.f;
-		MaxOre = 0;
+		MaxOre = 1;
 
 		bShieldEnabled = true;
 		bBroadsides = true;
@@ -258,49 +266,10 @@ void APlayerShip::UpgradeShip(int32 InOreOverflow, bool IsTierOneReset)
 	CurrentShield = MaxShield;
 	CurrentArmor = MaxArmor;
 	CurrentFuel = MaxFuel;
-	CurrentOre = InOreOverflow;
+	if (UpgradeLevel == 4) CurrentOre = 1;
+	else CurrentOre = InOreOverflow;
 
 	SendUpgradeLevelToUI(UpgradeLevel);
-}
-
-void APlayerShip::AddQuest(const FString& InQuestName, FVector InLocation, int32 InIconType)
-{
-	FQuestMarker NewQuestMarker;
-	NewQuestMarker.MarkerTitle = InQuestName;
-	NewQuestMarker.Location = InLocation;
-	NewQuestMarker.bReached = false;
-	NewQuestMarker.bCompleted = false;
-	NewQuestMarker.IconType = InIconType;
-	ActiveQuestMarkers.Add(NewQuestMarker);
-	FString NewQuestString = FString(TEXT("New objective added: ") + InQuestName);
-	SendMessageToUI(FText::FromString(NewQuestString));
-}
-
-void APlayerShip::UpdateQuest(const FString& InQuestName, bool InCompleted)
-{
-	for (FQuestMarker& Marker : ActiveQuestMarkers)
-	{
-		if (Marker.MarkerTitle == InQuestName) Marker.bCompleted = InCompleted;
-	}
-}
-
-void APlayerShip::UpdateQuestMarkers()
-{
-	APlayerController* PC = GetWorld()->GetFirstPlayerController();
-	if (IsValid(PC))
-	{
-		FVector2D ScreenPosition;
-
-		for (const FQuestMarker& Marker : ActiveQuestMarkers)
-		{
-			bool bEnlargeIcon = FVector::Distance(this->GetActorLocation(), Marker.Location) < 25000.f;
-
-			if (PC->ProjectWorldLocationToScreen(Marker.Location, ScreenPosition, true))
-			{
-				UpdateQuestMarkerUI(Marker, ScreenPosition, bEnlargeIcon);
-			}
-		}
-	}
 }
 
 void APlayerShip::InputCameraZoomIn()
@@ -366,8 +335,15 @@ void APlayerShip::SelectClosestTarget()
 	if (!IsValid(ClosestNPCShipTarget) && !bManualTargetSelected) ClosestNPCShipTarget = NewClosestNPCShip;
 	else ClosestNPCShipTarget->ToggleTurretArrows(true);
 	
-	if (bBroadsides) BroadsideTargetShip = NewClosestNPCShip;
-	if (IsValid(NewClosestNPCShip)) NewClosestNPCShip->ToggleBroadsideArrows(true);
+	if (bBroadsides)
+	{
+		BroadsideTargetShip = NewClosestNPCShip;
+
+		if (IsValid(NewClosestNPCShip))
+		{
+			NewClosestNPCShip->ToggleBroadsideArrows(true);
+		}
+	}		
 
 	if (IsValid(NewClosestNPCShip) && bFighters && FighterCount >= 1)
 	{
@@ -389,12 +365,6 @@ void APlayerShip::ManualSelectTarget(AJamShipBase* InNewTarget)
 	}
 }
 
-float APlayerShip::CalculatePercent(float InCurrent, float InMax)
-{
-	if (FMath::IsNearlyZero(InCurrent, 0.001)) return 0.f;
-	else return InCurrent / InMax;
-}
-
 void APlayerShip::UpdateFighters()
 {
 	TArray<AJamShipBase*> FightersToCheck = DeployedFighters;
@@ -402,7 +372,64 @@ void APlayerShip::UpdateFighters()
 	{
 		if (!IsValid(FightersToCheck[i])) DeployedFighters.Remove(FightersToCheck[i]);
 	}
-	GEngine->AddOnScreenDebugMessage(-1, 0.5f, FColor::Green, FString::FromInt(DeployedFighters.Num()));
+}
+
+void APlayerShip::AddQuest(const FString& InQuestName, FVector InLocation)
+{
+	FQuestMarker NewQuestMarker;
+	NewQuestMarker.MarkerTitle = InQuestName;
+	NewQuestMarker.Location = InLocation;
+	NewQuestMarker.Arrow = SpawnQuestArrow();
+
+	QuestMarkers.Add(NewQuestMarker);
+
+	FString NewQuestString = FString(TEXT("New objective added: ") + InQuestName);
+	SendMessageToUI(FText::FromString(NewQuestString));
+}
+
+void APlayerShip::CompleteQuest(const FString& InQuestName)
+{
+	int32 MarkerIndexToDelete = -1;
+	for (int32 i = 0; i < QuestMarkers.Num(); ++i)
+	{
+		if (QuestMarkers[i].MarkerTitle == InQuestName) MarkerIndexToDelete = i;
+	}
+
+	if (QuestMarkers.IsValidIndex(MarkerIndexToDelete))
+	{
+		auto Child = QuestMarkers[MarkerIndexToDelete].Arrow->GetChildComponent(0);
+		if (IsValid(Child)) Child->DestroyComponent();
+		QuestMarkers[MarkerIndexToDelete].Arrow->DestroyComponent();
+		QuestMarkers.RemoveAt(MarkerIndexToDelete);
+	}
+}
+
+void APlayerShip::UpdateQuestArrows()
+{
+	for (FQuestMarker& Marker : QuestMarkers)
+	{		
+		if (IsValid(Marker.Arrow))
+		{
+			FRotator Translate = FVector(Marker.Location - Marker.Arrow->GetComponentLocation()).GetSafeNormal().Rotation();
+			if (IsValid(Marker.Arrow)) Marker.Arrow->SetWorldRotation(Translate);
+		}
+	}
 }
 
 bool APlayerShip::GetFightersStatus() {	return bFighters; }
+
+USceneComponent* APlayerShip::SpawnQuestArrow()
+{
+	USceneComponent* NewQuestArrowAttach = NewObject<USceneComponent>(this);
+	NewQuestArrowAttach->RegisterComponent();
+	NewQuestArrowAttach->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
+
+	UStaticMeshComponent* NewQuestArrow = NewObject<UStaticMeshComponent>(this);
+	NewQuestArrow->RegisterComponent();
+	if (IsValid(QuestArrowMesh)) NewQuestArrow->SetStaticMesh(QuestArrowMesh);
+	NewQuestArrow->AttachToComponent(NewQuestArrowAttach, FAttachmentTransformRules::KeepRelativeTransform);
+	NewQuestArrow->SetRelativeTransform(FTransform(FRotator(0.0, 90.0, 0.0),FVector(33500.0, 0.0, 0.0), FVector(5.0)));
+	NewQuestArrow->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	return NewQuestArrowAttach;
+}

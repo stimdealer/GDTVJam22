@@ -44,6 +44,11 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bPhoenixInProgress = false;
 
+	bool bNPCControlled = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float NPCCloseDistance = 2500.f;
+
 	// Ship base stats
 	// Weapon Damage per .25 sec
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -123,6 +128,8 @@ protected:
 	void SpawnWeaponsVFX();
 
 	void FireWeapons();
+
+	float CalculatePercent(float InCurrent, float InMax);
 
 private:
 	UNiagaraSystem* NS_DevestatorBeam = nullptr;

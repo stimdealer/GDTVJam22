@@ -73,7 +73,7 @@ void ATrackingMissile::BeginPlay()
 
 void ATrackingMissile::MoveTowardsTarget(float InDelta)
 {
-	if (!IsValid(Target)) return;
+	if (!IsValid(Target)) this->Destroy();
 
 	FVector Direction = FVector(Target->GetActorLocation() - this->GetActorLocation()).GetSafeNormal();
 	this->SetActorRotation(Direction.Rotation());

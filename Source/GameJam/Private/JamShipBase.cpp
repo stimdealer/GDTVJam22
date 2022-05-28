@@ -96,7 +96,6 @@ void AJamShipBase::FireWeapons()
 
 	if (IsValid(ForwardTargetShip) && bForwardInRange && bForwardAngleValid)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 0.25f, FColor::Blue, TEXT("Applying damage with forward guns!"));
 		ForwardTargetShip->ShipApplyDamage(ForwardFirepower);
 		SFXForwardFiring(true);
 	}
@@ -148,22 +147,19 @@ void AJamShipBase::MoveToDestination(float InDelta)
 
 		float Thrust = MaxSpeed * 100.f;
 
-		if (Distance > 1000.0 && Momentum < NewMaxSpeed)
+		if (bNPCControlled && Distance < NPCCloseDistance)
+		{
+			Force = Prim->GetComponentVelocity() * -4;
+		}
+		else if (Distance > 1000.0 && Momentum < NewMaxSpeed)
 		{
 			if (bIsBoosting) Thrust = Thrust * 2.f;
-			//else if (Distance < 1000.0) Thrust = 50000.f;
 
 			Force = Prim->GetForwardVector() * Thrust * InDelta;
 		}
 		else
 		{
 			Force = Prim->GetComponentVelocity() * -2;
-			/*
-			if (Prim->GetComponentVelocity().X > 5.0 || Prim->GetComponentVelocity().Y > 5.0 || Prim->GetComponentVelocity().Z > 5.0)
-			{
-				Force = Prim->GetComponentVelocity() * -2;
-			}
-			*/
 		}
 
 		Force = FVector(
@@ -200,8 +196,8 @@ void AJamShipBase::TurretsTracking(float InDelta)
 				bIsTurretsInRange = FVector::Distance(TurretTargetShip->GetActorLocation(), this->GetActorLocation()) < TurretRange;
 			}
 
-FRotator NewRotation = FMath::RInterpConstantTo(Turret->GetRelativeRotation(), FRotator(0.0, NewYaw, 0.0), InDelta, 100.f);
-Turret->SetRelativeRotation(NewRotation);
+			FRotator NewRotation = FMath::RInterpConstantTo(Turret->GetRelativeRotation(), FRotator(0.0, NewYaw, 0.0), InDelta, 100.f);
+			Turret->SetRelativeRotation(NewRotation);
 		}
 		else GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Yellow, TEXT("Fire socket not found"));
 	}
@@ -226,9 +222,8 @@ void AJamShipBase::ForwardTracking()
 	FVector DirectionToTarget = FVector(ForwardTargetShip->GetActorLocation() - this->GetActorLocation()).GetSafeNormal();
 
 	bForwardAngleValid = FMath::RadiansToDegrees(acosf(FVector::DotProduct(this->GetActorForwardVector(), DirectionToTarget))) < 30.f;
-	if (bForwardAngleValid) GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::White, TEXT("Forward angle valid!"));
+
 	bForwardInRange = FVector::Distance(ForwardTargetShip->GetActorLocation(), this->GetActorLocation()) < ForwardRange;
-	if (bForwardInRange) GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::White, TEXT("Forward range valid!"));
 }
 
 void AJamShipBase::ShipApplyDamage(float InDamage)
@@ -509,4 +504,10 @@ void AJamShipBase::SpawnWeaponsVFX()
 		BoostThrusterFour->SetNiagaraVariableFloat(TEXT("Width"), 24.f);
 		BoostThrusterFour->SetNiagaraVariableLinearColor(TEXT("Color"), FLinearColor(100.f, 50.f, 0.f, 1.f));
 	}
+}
+
+float AJamShipBase::CalculatePercent(float InCurrent, float InMax)
+{
+	if (FMath::IsNearlyZero(InCurrent, 0.001)) return 0.f;
+	else return InCurrent / InMax;
 }

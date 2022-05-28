@@ -17,10 +17,12 @@ void ANPCShip::Tick(float DeltaTime)
 		bDestructionComplete = true;
 		ShipDeath();
 	}
-		
 	else CheckDistanceToPlayer();
 
-	UpdateStats(CurrentArmor / MaxArmor);
+	UpdateStats(
+		CalculatePercent(CurrentArmor, MaxArmor), 
+		CalculatePercent(CurrentShield, MaxShield)
+	);
 }
 
 void ANPCShip::CheckDistanceToPlayer()

@@ -17,20 +17,14 @@ struct GAMEJAM_API FQuestMarker
 {
 	GENERATED_BODY()
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY()
 	FString MarkerTitle;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY()
 	FVector Location;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	int32 IconType = 0;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	bool bReached;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	bool bCompleted;
+	UPROPERTY()
+	USceneComponent* Arrow = nullptr;
 };
 
 UCLASS()
@@ -55,10 +49,10 @@ public:
 	void ManualSelectTarget(AJamShipBase* InNewTarget);
 
 	UFUNCTION(BlueprintCallable)
-	void AddQuest(const FString& InQuestName, FVector InLocation, int32 InIconType);
+	void AddQuest(const FString& InQuestName, FVector InLocation);
 
 	UFUNCTION(BlueprintCallable)
-	void UpdateQuest(const FString& InQuestName, bool InCompleted);
+	void CompleteQuest(const FString& InQuestName);
 
 	UFUNCTION(BlueprintCallable)
 	bool GetFightersStatus();
@@ -94,9 +88,6 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "UI Functions")
 	void SendUpgradeLevelToUI(int32 InLevel);
 
-	UFUNCTION(BlueprintImplementableEvent, Category = "UI Functions")
-	void UpdateQuestMarkerUI(const FQuestMarker& InMarker, FVector2D InPosition, bool IsEnlargedIcon);
-
 private:
 	TArray<AJamShipBase*> AllTargets;
 
@@ -107,7 +98,9 @@ private:
 	USceneComponent* CameraElevation;
 	UCameraComponent* TopDownCamera;
 
-	TArray<FQuestMarker> ActiveQuestMarkers;
+	UStaticMesh* QuestArrowMesh = nullptr;
+
+	TArray<FQuestMarker> QuestMarkers;
 
 	FTimerHandle PhoenixInvulnHandle;
 
@@ -122,8 +115,7 @@ private:
 	int32 MaxOre = 100;
 	int32 CurrentOre = 0;
 
-	// UI Icons
-	void UpdateQuestMarkers();
+	float IconRadius = 60.f;
 
 	// Controls
 	void InputCameraZoomIn();
@@ -136,6 +128,8 @@ private:
 
 	// Misc functions
 	void UpgradeShip(int32 InOreOverflow = 0, bool IsTierOneReset = false);
-	float CalculatePercent(float InCurrent, float InMax);
 	void UpdateFighters();
+
+	void UpdateQuestArrows();
+	USceneComponent* SpawnQuestArrow();
 };
