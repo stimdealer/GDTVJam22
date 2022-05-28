@@ -30,3 +30,4 @@ The following Sound FX are being used from Sonniss.com - GDC 2019 - Game Audio B
 - metal_hit_004
 - PM_SA_WARPED_1
 - BROKEN - CK - EXPLOSION Boomy Crack.wav
+- EMF Extractor Fan Box 01.wav
