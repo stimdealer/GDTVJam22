@@ -25,7 +25,7 @@ public:
 	void ToggleBroadsideArrows(bool IsActive);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Player Targetting")
-	void UpdateStats(float InArmorPercent, float InShieldPercent = 0.f);
+	void UpdateStats(float InArmorPercent, float InShieldPercent);
 
 protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "General")
