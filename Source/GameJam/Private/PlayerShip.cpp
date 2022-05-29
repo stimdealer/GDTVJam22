@@ -178,12 +178,12 @@ void APlayerShip::UpgradeShip(int32 InOreOverflow, bool IsTierOneReset)
 	switch (UpgradeLevel)
 	{
 	case 1:
-		TurretsFirepower = 10.f;
+		TurretsFirepower = 25.f;
 		BroadsidesFirepower = 0.f;
 		TurretRange = 5000.f;
 
 		MaxShield = 0.f;
-		MaxArmor = 1000.f;
+		MaxArmor = 4000.f;
 		MaxFuel = 100.f;
 		CurrentFuel = 100.f;
 
@@ -198,13 +198,13 @@ void APlayerShip::UpgradeShip(int32 InOreOverflow, bool IsTierOneReset)
 
 		break;
 	case 2:
-		TurretsFirepower = 15.f;
+		TurretsFirepower = 30.f;
 		BroadsidesFirepower = 30.f;
 		BroadsideRange = 5000.f;
 		TurretRange = 6000.f;
 
 		MaxShield = 0.f;
-		MaxArmor = 1500.f;
+		MaxArmor = 5000.f;
 		MaxFuel = 100.f;
 		CurrentFuel = 100.f;
 
@@ -219,13 +219,13 @@ void APlayerShip::UpgradeShip(int32 InOreOverflow, bool IsTierOneReset)
 
 		break;
 	case 3:
-		TurretsFirepower = 20.f;
+		TurretsFirepower = 35.f;
 		BroadsidesFirepower = 50.f;
 		BroadsideRange = 5500.f;
 		TurretRange = 7000.f;
 
 		MaxShield = 500.f;
-		MaxArmor = 1500.f;
+		MaxArmor = 6000.f;
 		MaxFuel = 100.f;
 		CurrentFuel = 100.f;
 
@@ -240,13 +240,13 @@ void APlayerShip::UpgradeShip(int32 InOreOverflow, bool IsTierOneReset)
 
 		break;
 	case 4:
-		TurretsFirepower = 25.f;
+		TurretsFirepower = 40.f;
 		BroadsidesFirepower = 70.f;
 		BroadsideRange = 6000.f;
 		TurretRange = 8000.f;
 
 		MaxShield = 1000.f;
-		MaxArmor = 2000.f;
+		MaxArmor = 8000.f;
 		MaxFuel = 100.f;
 		CurrentFuel = 100.f;
 
