@@ -1,0 +1,3 @@
+Unless stated otherwise this work is licensed under a Creative Commons Attribution-NonCommercial 4.0 International License. See the full text of license here: https://creativecommons.org/licenses/by-nc/4.0/
+
+Some files that are listed in credits.md comes with a different license.
