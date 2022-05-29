@@ -62,7 +62,7 @@ void AJamShipBase::Tick(float DeltaTime)
 	if (!bShieldCooldown && ShieldRegenTimer > 2.5f)
 	{
 		ShieldRegenTimer = 0.f;
-		CurrentShield += MaxShield * 0.1f;
+		CurrentShield += ShieldRegenAmount;
 		CurrentShield = FMath::Clamp(CurrentShield, 0, MaxShield);
 	}
 

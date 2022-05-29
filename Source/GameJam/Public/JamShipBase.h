@@ -71,6 +71,8 @@ protected:
 	float MaxShield = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float CurrentShield = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float ShieldRegenAmount = 100.f;
 
 	// Armor
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
