@@ -20,25 +20,24 @@ void AFighterShip::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (bReadyToReturn && IsValid(PlayerShipRef)) Destination = PlayerShipRef->GetActorLocation();
-	else if (IsValid(ForwardTargetShip)) Destination = ForwardTargetShip->GetActorLocation();
-
-	RefreshTimer += DeltaTime;
-	if (RefreshTimer > 0.5f)
+	if (IsValid(PlayerShipRef))
 	{
-		RefreshTimer = 0.f;
-		if (!IsValid(ForwardTargetShip) && bEngagingTarget) bReadyToReturn = true;
-		
-		if (IsValid(PlayerShipRef))
+		float DistanceToPlayer = FVector::Distance(this->GetActorLocation(), PlayerShipRef->GetActorLocation());
+		if (DistanceToPlayer > 15000.f) this->Destroy();
+
+		if (bReadyToReturn) Destination = PlayerShipRef->GetActorLocation();
+		else if (IsValid(ForwardTargetShip)) Destination = ForwardTargetShip->GetActorLocation();
+
+		RefreshTimer += DeltaTime;
+		if (RefreshTimer > 0.5f)
 		{
-			if (bReadyToReturn)
-			{
-				float DistanceToPlayer = FVector::Distance(this->GetActorLocation(), PlayerShipRef->GetActorLocation());
-				if (DistanceToPlayer < 2500.f) this->Destroy();
-			}
+			RefreshTimer = 0.f;
+			if (!IsValid(ForwardTargetShip) && bEngagingTarget) bReadyToReturn = true;
+
+			if (bReadyToReturn && DistanceToPlayer < 2500.f) this->Destroy();
 		}
-		else this->Destroy();
 	}
+	else this->Destroy();
 }
 
 void AFighterShip::AssignTarget(ANPCShip* InTarget, APlayerShip* InPlayerShipRef)

@@ -78,7 +78,6 @@ void AJamShipBase::FireWeapons()
 {
 	if (IsValid(TurretTargetShip) && bIsTurretsInRange && bIsTurretsAimedAtTarget)
 	{
-		if (TurretBossOneVFX) GEngine->AddOnScreenDebugMessage(-1, 0.25f, FColor::Yellow, TEXT("Boss lasers firing!"));
 		TurretTargetShip->ShipApplyDamage(TurretsFirepower);
 		SFXTurretsFiring(true);
 	}

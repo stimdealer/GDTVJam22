@@ -8,7 +8,6 @@
 #include "Camera/CameraComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/BoxComponent.h"
-#include "Blueprint/UserWidget.h"
 
 // Local includes
 #include "NPCShip.h"
