@@ -31,4 +31,4 @@ The following Sound FX are being used from Sonniss.com - GDC 2019 - Game Audio B
 
 # Special thanks
 - We used awesome free color palette made by Imphenzia.... Check his YT channel: https://www.youtube.com/c/Imphenzia
-- Thank you to AvocadoFire's husband for voice acting in the game cinematic!
+- Thank you to AvocadoFire's husband for voice acting in the game cinematics!
