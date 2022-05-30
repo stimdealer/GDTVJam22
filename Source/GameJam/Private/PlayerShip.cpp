@@ -184,8 +184,6 @@ void APlayerShip::UpgradeShip(int32 InOreOverflow, bool IsTierOneReset)
 
 		MaxShield = 0.f;
 		MaxArmor = 4000.f;
-		MaxFuel = 100.f;
-		CurrentFuel = 100.f;
 
 		MaxSpeed = 700.f;
 		TurnSpeed = 80.f;
@@ -196,6 +194,8 @@ void APlayerShip::UpgradeShip(int32 InOreOverflow, bool IsTierOneReset)
 		bLauncher = false;
 		bFighters = false;
 
+		SendMessageToUI(FText::FromString(TEXT("Weapons Officer: The ship only has turrets available for defense, please be careful until we can upgrade our systems again.")), true);
+
 		break;
 	case 2:
 		TurretsFirepower = 30.f;
@@ -205,8 +205,6 @@ void APlayerShip::UpgradeShip(int32 InOreOverflow, bool IsTierOneReset)
 
 		MaxShield = 0.f;
 		MaxArmor = 5000.f;
-		MaxFuel = 100.f;
-		CurrentFuel = 100.f;
 
 		MaxSpeed = 850.f;
 		TurnSpeed = 90.f;
@@ -217,6 +215,8 @@ void APlayerShip::UpgradeShip(int32 InOreOverflow, bool IsTierOneReset)
 		bLauncher = false;
 		bFighters = false;
 
+		SendMessageToUI(FText::FromString(TEXT("Weapons Officer: Broadside guns are online, and will fire at any targets within range.")), true);
+
 		break;
 	case 3:
 		TurretsFirepower = 35.f;
@@ -226,8 +226,6 @@ void APlayerShip::UpgradeShip(int32 InOreOverflow, bool IsTierOneReset)
 
 		MaxShield = 500.f;
 		MaxArmor = 6000.f;
-		MaxFuel = 100.f;
-		CurrentFuel = 100.f;
 
 		MaxSpeed = 1000.f;
 		TurnSpeed = 100.f;
@@ -238,6 +236,8 @@ void APlayerShip::UpgradeShip(int32 InOreOverflow, bool IsTierOneReset)
 		bLauncher = true;
 		bFighters = false;
 
+		SendMessageToUI(FText::FromString(TEXT("Weapons Officer: Our missile launchers have been activated. Ready to fire on your command!")), true);
+
 		break;
 	case 4:
 		TurretsFirepower = 40.f;
@@ -247,8 +247,6 @@ void APlayerShip::UpgradeShip(int32 InOreOverflow, bool IsTierOneReset)
 
 		MaxShield = 1000.f;
 		MaxArmor = 8000.f;
-		MaxFuel = 100.f;
-		CurrentFuel = 100.f;
 
 		MaxSpeed = 1200.f;
 		TurnSpeed = 120.f;
@@ -259,12 +257,13 @@ void APlayerShip::UpgradeShip(int32 InOreOverflow, bool IsTierOneReset)
 		bLauncher = true;
 		bFighters = true;
 
+		SendMessageToUI(FText::FromString(TEXT("Weapons Officer: The fighter bay is online and ready to launch support fighters.")), true);
+
 		break;
 	}
 
 	CurrentShield = MaxShield;
 	CurrentArmor = MaxArmor;
-	CurrentFuel = MaxFuel;
 	if (UpgradeLevel == 4) CurrentOre = 1;
 	else CurrentOre = InOreOverflow;
 

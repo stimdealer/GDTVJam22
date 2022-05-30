@@ -36,7 +36,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	int32 UpgradeLevel = 1;
 
-	int32 FighterCount = 3;
+	int32 FighterCount = 6;
 
 	APlayerShip();
 	virtual void Tick(float DeltaTime) override;
@@ -65,7 +65,7 @@ protected:
 	TArray<AJamShipBase*> DeployedFighters;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 MaxFighters = 3;
+	int32 MaxFighters = 6;
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Ship Functions")
 	void LaunchFighter(ANPCShip* InTarget);
