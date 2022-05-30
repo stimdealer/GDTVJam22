@@ -22,13 +22,13 @@ The following Sound FX are being used from FreeSound.org (https://freesound.org/
 - 521377__jarusca__rocket-launch
 - 607049__aenhs__explosion
 
-# Others
-
-- We used awesome free color palette made by Imphenzia.... Check his YT channel: https://www.youtube.com/c/Imphenzia
-
 ## Sonniss
 The following Sound FX are being used from Sonniss.com - GDC 2019 - Game Audio Bundle (license: https://sonniss.com/gdc-bundle-license/ ):
 - metal_hit_004
 - PM_SA_WARPED_1
 - BROKEN - CK - EXPLOSION Boomy Crack.wav
 - EMF Extractor Fan Box 01.wav
+
+# Special thanks
+- We used awesome free color palette made by Imphenzia.... Check his YT channel: https://www.youtube.com/c/Imphenzia
+- Thank you to AvocadoFire's husband for voice acting in the game cinematic!
